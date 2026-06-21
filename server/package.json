@@ -1,0 +1,20 @@
+{
+  "name": "daily-outfit-planner-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --import ./src/instrument.js src/index.js",
+    "start": "node --import ./src/instrument.js src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@apple/app-store-server-library": "^3.1.0",
+    "@sentry/node": "^10.53.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "iyzipay": "^2.0.67",
+    "openai": "^6.35.0"
+  }
+}
