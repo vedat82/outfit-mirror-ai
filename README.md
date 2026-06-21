@@ -1,6 +1,6 @@
-# Daily Outfit Planner
+# Outfit Mirror AI
 
-A minimal MVP full-stack app for adding clothes and getting simple rule-based outfit suggestions.
+An AI-powered wardrobe and styling assistant for organizing clothes, creating outfit suggestions, reviewing looks, and previewing outfits.
 
 ## Stack
 
@@ -53,6 +53,8 @@ client/   React, Vite, Tailwind UI
 server/   Express API, SQLite persistence, outfit matching logic
 ```
 
+The static files at the repository root publish the legal website at `outfit.veerapps.com` through GitHub Pages.
+
 ## API
 
 - `GET /api/clothes`
@@ -70,3 +72,21 @@ AI endpoints:
 
 - `POST /ai/analyze-image`
 - `POST /api/ai/analyze-image`
+
+## Features
+
+* Smart outfit recommendations
+* Wardrobe management
+* AI-powered clothing analysis
+* Outfit photo reviews
+* See On Me™ virtual outfit previews
+* Personalized style suggestions
+* Premium subscription features
+
+## Legal and support
+
+* [Privacy Policy](privacy.html)
+* [Terms of Use](terms.html)
+* [Subscription Terms](subscription.html)
+
+Support and privacy requests: [vedat.82@gmail.com](mailto:vedat.82@gmail.com)
