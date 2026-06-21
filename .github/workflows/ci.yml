@@ -81,7 +81,4 @@ jobs:
             'cd /opt/veerapps/outfit-mirror-ai && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans'
 
       - name: Verify production API
-        run: |
-          curl --fail --silent --show-error \
-            --retry 12 --retry-delay 5 --retry-all-errors \
-            https://api.veerapps.com/api/health
+        run: npm run smoke:production
