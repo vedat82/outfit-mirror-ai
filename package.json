@@ -16,6 +16,9 @@
     "server",
     "client"
   ],
+  "overrides": {
+    "form-data": "4.0.6"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }
