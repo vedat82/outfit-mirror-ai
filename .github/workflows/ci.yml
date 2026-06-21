@@ -78,7 +78,10 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           ssh -i ~/.ssh/veerapps_deploy -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" \
-            'cd /opt/veerapps/outfit-mirror-ai && docker compose -f docker-compose.prod.yml up -d --build --remove-orphans'
+            'cd /opt/veerapps/outfit-mirror-ai && \
+             install -d -m 700 /opt/veerapps/backups /opt/veerapps/backups/logs && \
+             install -m 700 ops/backup-production.sh ops/verify-production-backups.sh /opt/veerapps/backups/ && \
+             docker compose -f docker-compose.prod.yml up -d --build --remove-orphans'
 
       - name: Verify production API
         run: npm run smoke:production
