@@ -1,0 +1,36 @@
+name: outfit-mirror-ai
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    init: true
+    env_file:
+      - server/.env
+    environment:
+      NODE_ENV: production
+      APP_ENVIRONMENT: production
+      PORT: 4000
+      DATABASE_PATH: /data/outfits.db
+      ALLOW_PAYMENT_RESET: "false"
+      ALLOW_XCODE_STOREKIT_VERIFICATION: "false"
+      SENTRY_ENABLE_LOCAL: "false"
+      SENTRY_TEST_ENDPOINT_ENABLED: "false"
+    ports:
+      - "127.0.0.1:${OUTFIT_API_PORT:-4100}:4000"
+    volumes:
+      - outfit_data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  outfit_data:
+
