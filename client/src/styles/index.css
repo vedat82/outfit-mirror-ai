@@ -768,6 +768,27 @@ html[data-form-focused="true"] .bottom-tabbar {
 
 .wardrobe-filters button.is-active { border-color: var(--aura-ink); background: var(--aura-ink); color: white; }
 
+.wardrobe-improve-button {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  border: 1px solid #99f6e4;
+  border-radius: 14px;
+  background: #f0fdfa;
+  padding: 10px 12px;
+  color: #115e59;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wardrobe-improve-button svg {
+  width: 16px;
+  height: 16px;
+}
+
 .wardrobe-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

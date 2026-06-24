@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { maxAppearancePhotos } from '../api/appearanceProfile.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { compressImageFile } from '../utils/imageCompression.js';
+import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from '../utils/nativeImagePicker.js';
 
 const genders = ['male', 'female', 'non-binary', 'prefer not to say'];
 const bodyTypes = ['slim', 'athletic', 'muscular', 'bulky', 'overweight', 'skinny-fat', 'petite', 'plus-size'];
@@ -12,6 +13,8 @@ const styleGoals = ['look bigger', 'slimmer', 'casual', 'elegant'];
 export default function AppearanceProfile({ profile, accessStatus, onSave, showPhotoTools = true }) {
   const { t, optionLabel } = useI18n();
   const [draftProfile, setDraftProfile] = useState(profile);
+  const libraryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const canUseUserPhotoUpload = accessStatus.canUseUserPhotoUpload;
   const canUploadMore = canUseUserPhotoUpload && draftProfile.photos.length < maxAppearancePhotos;
 
@@ -30,31 +33,54 @@ export default function AppearanceProfile({ profile, accessStatus, onSave, showP
     setDraftProfile((current) => ({ ...current, [name]: value }));
   }
 
+  function addPhotoToDraft(imageDataUrl, fileName = '', index = 0) {
+    setDraftProfile((current) => {
+      const nextPhotos = [
+        ...current.photos,
+        {
+          id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+          imageUrl: imageDataUrl
+        }
+      ].slice(0, maxAppearancePhotos);
+
+      return {
+        ...current,
+        ...analyzePhoto(fileName, nextPhotos.length),
+        photos: nextPhotos
+      };
+    });
+  }
+
   function handlePhotoChange(event) {
     const files = Array.from(event.target.files || []).slice(0, maxAppearancePhotos - draftProfile.photos.length);
     if (files.length === 0) return;
 
     files.forEach((file, index) => {
-      compressImageFile(file, { maxDimension: 840, quality: 0.68 }).then((imageDataUrl) => {
-        setDraftProfile((current) => {
-          const nextPhotos = [
-            ...current.photos,
-            {
-              id: `${Date.now()}-${index}`,
-              imageUrl: imageDataUrl
-            }
-          ].slice(0, maxAppearancePhotos);
-
-          return {
-            ...current,
-            ...analyzePhoto(file.name, nextPhotos.length),
-            photos: nextPhotos
-          };
-        });
-      });
+      compressImageFile(file, { maxDimension: 840, quality: 0.68 }).then((imageDataUrl) => addPhotoToDraft(imageDataUrl, file.name, index));
     });
 
     event.target.value = '';
+  }
+
+  async function handleNativePhotoPick(source, fallbackInputRef) {
+    if (!canUploadMore) return;
+
+    try {
+      const imageDataUrl = await pickNativeImageDataUrl({
+        source,
+        maxDimension: 840,
+        quality: 0.68
+      });
+
+      if (imageDataUrl) {
+        addPhotoToDraft(imageDataUrl, source);
+        return;
+      }
+    } catch (error) {
+      if (isNativeImagePickerCancel(error)) return;
+    }
+
+    fallbackInputRef.current?.click();
   }
 
   function handleRemovePhoto(photoId) {
@@ -85,16 +111,34 @@ export default function AppearanceProfile({ profile, accessStatus, onSave, showP
                 <p className="mt-1 text-sm text-slate-500">{t('appearance.photoLimit', { count: draftProfile.photos.length, max: maxAppearancePhotos })}</p>
                 {!canUseUserPhotoUpload ? <p className="mt-2 text-xs font-semibold text-amber-700">🔒 {t('premium.availableInPremium')}</p> : null}
               </div>
-              <label
-                className={`rounded-md px-3 py-2 text-center text-sm font-semibold transition ${
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => handleNativePhotoPick(imageSources.photos, libraryInputRef)}
+                  disabled={!canUploadMore}
+                  className={`rounded-md px-3 py-2 text-center text-sm font-semibold transition ${
                   canUploadMore
                     ? 'cursor-pointer border border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700'
                     : 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400'
                 }`}
-              >
-                {!canUseUserPhotoUpload ? '🔒 ' : ''}{t('buttons.uploadUserPhoto')}
-                <input type="file" accept="image/*" multiple disabled={!canUploadMore} className="sr-only" onChange={handlePhotoChange} />
-              </label>
+                >
+                  {!canUseUserPhotoUpload ? '🔒 ' : ''}{t('buttons.uploadUserPhoto')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNativePhotoPick(imageSources.camera, cameraInputRef)}
+                  disabled={!canUploadMore}
+                  className={`rounded-md px-3 py-2 text-center text-sm font-semibold transition ${
+                  canUploadMore
+                    ? 'cursor-pointer border border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700'
+                    : 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400'
+                }`}
+                >
+                  {!canUseUserPhotoUpload ? '🔒 ' : ''}{t('buttons.takePhoto')}
+                </button>
+                <input ref={libraryInputRef} type="file" accept="image/*" multiple disabled={!canUploadMore} className="sr-only" onChange={handlePhotoChange} />
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="user" disabled={!canUploadMore} className="sr-only" onChange={handlePhotoChange} />
+              </div>
             </div>
 
             {draftProfile.photos.length > 0 ? (

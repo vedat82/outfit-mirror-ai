@@ -82,9 +82,10 @@
     "seeOnMe": "See On Me",
     "premium": "Premium",
     "recentKicker": "YOUR STYLE HISTORY",
-    "recentTitle": "Recent Reviews",
+    "recentTitle": "Recent Outfits",
     "newReview": "New review",
-    "reviewVerdict": "Balanced and confident",
+    "outfitBadge": "Outfit",
+    "reviewVerdict": "Suggested from your wardrobe",
     "emptyTitle": "Review your first outfit",
     "emptyDescription": "Start with one photo in just a few seconds."
   },

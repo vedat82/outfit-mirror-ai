@@ -25,6 +25,7 @@ import { getPaymentStatus, resetPaymentStatus, verifyApplePurchase } from './api
 import { getActiveAppleSubscription, isAppleAlreadyPurchased, isApplePurchaseCancelled, purchaseAppleSubscription, restoreAppleSubscriptions } from './api/applePurchases.js';
 import { canUseAppleSubscriptions, detectPaymentPlatform } from './utils/platform.js';
 import { compressImageDataUrl, compressImageFile } from './utils/imageCompression.js';
+import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from './utils/nativeImagePicker.js';
 import { canUsePaymentTestHelpers, isCurrentPaymentRequest, isXcodeStoreKitEnvironment, withPaymentTimeout } from './utils/paymentFlow.js';
 import { addMonitoringBreadcrumb, captureAppError } from './monitoring/sentry.js';
 import stylistHero from './assets/stylist-hero.jpg';
@@ -524,7 +525,7 @@ function HomeTab({ outfitHistory, accessStatus, onAnalyze, onSeeOnMe, onOpenPayw
                 <article className="aura-review-card" key={outfit.historyId || index}>
                   <img src={image} alt="" loading="lazy" />
                   <div>
-                    <span className="aura-score">{8 + Math.max(0, 3 - index) / 10}</span>
+                    <span className="aura-score">{t('home2.outfitBadge')}</span>
                     <p>{t('home2.reviewVerdict')}</p>
                     <small>{optionLabel('occasions', outfit.occasion || 'daily')}</small>
                   </div>
@@ -935,13 +936,16 @@ function LegacyWardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessS
   );
 }
 
-function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus }) {
+function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus, preferences, appearanceProfile, outfitHistory }) {
   const { t, optionLabel } = useI18n();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
   const [showSearch, setShowSearch] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
+  const [visibleRecommendationCount, setVisibleRecommendationCount] = useState(4);
+  const [activeRecommendationIndex, setActiveRecommendationIndex] = useState(0);
 
   const filteredClothes = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
@@ -957,6 +961,13 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus 
       return matchesWardrobeFilter(item, filter) && (!cleanQuery || searchable.includes(cleanQuery));
     });
   }, [clothes, filter, optionLabel, query]);
+
+  const wardrobeRecommendations = useMemo(() => buildWardrobeRecommendations({
+    clothes,
+    preferences,
+    appearanceProfile,
+    outfitHistory
+  }), [appearanceProfile, clothes, outfitHistory, preferences]);
 
   async function handleAddAndClose(payload) {
     await onAdd(payload);
@@ -1014,24 +1025,48 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus 
         ))}
       </div>
 
+      <button type="button" onClick={() => setShowRecommendations((value) => !value)} className="wardrobe-improve-button">
+        <SparklesIcon aria-hidden="true" />
+        <span>{t('wardrobe.improve.action')}</span>
+      </button>
+
       <ScrollPanel className="wardrobe-scroll">
         {isLoading ? (
           <div className="wardrobe-grid">
             {[1, 2, 3, 4, 5, 6].map((item) => <div key={item} className="wardrobe-skeleton" />)}
           </div>
-        ) : filteredClothes.length ? (
-          <div className="wardrobe-grid">
-            {filteredClothes.map((item) => <WardrobeCard key={item.id} item={item} />)}
-          </div>
         ) : (
-          <button type="button" onClick={() => setShowAddSheet(true)} className="aura-empty-row wardrobe-empty">
-            <PlusIcon aria-hidden="true" />
-            <span>
-              <strong>{t('wardrobe.emptyTitle')}</strong>
-              <small>{t('wardrobe.emptyDescription')}</small>
-            </span>
-            <ChevronRightIcon aria-hidden="true" />
-          </button>
+          <div className="grid gap-3">
+            {showRecommendations ? (
+              <WardrobeImprovementPanel
+                recommendations={wardrobeRecommendations}
+                visibleCount={visibleRecommendationCount}
+                activeIndex={Math.min(activeRecommendationIndex, Math.max(0, visibleRecommendationCount - 1))}
+                onActiveIndexChange={(nextIndex) => setActiveRecommendationIndex(Math.max(0, Math.min(nextIndex, visibleRecommendationCount - 1)))}
+                onShowMore={() => {
+                  setVisibleRecommendationCount((value) => {
+                    const nextValue = Math.min(value + 3, wardrobeRecommendations.length);
+                    setActiveRecommendationIndex(value);
+                    return nextValue;
+                  });
+                }}
+              />
+            ) : null}
+            {filteredClothes.length ? (
+              <div className="wardrobe-grid">
+                {filteredClothes.map((item) => <WardrobeCard key={item.id} item={item} />)}
+              </div>
+            ) : (
+              <button type="button" onClick={() => setShowAddSheet(true)} className="aura-empty-row wardrobe-empty">
+                <PlusIcon aria-hidden="true" />
+                <span>
+                  <strong>{t('wardrobe.emptyTitle')}</strong>
+                  <small>{t('wardrobe.emptyDescription')}</small>
+                </span>
+                <ChevronRightIcon aria-hidden="true" />
+              </button>
+            )}
+          </div>
         )}
       </ScrollPanel>
 
@@ -1194,6 +1229,8 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   const [serviceError, setServiceError] = useState(null);
   const [validationWarning, setValidationWarning] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const seeOnMeLibraryInputRef = useRef(null);
+  const seeOnMeCameraInputRef = useRef(null);
   const isGenerating = state === 'generating';
   const isGeneratingRef = useRef(false);
   const canUploadMore = accessStatus.canUseUserPhotoUpload && appearanceProfile.photos.length < maxAppearancePhotos && !isGenerating;
@@ -1208,12 +1245,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     setValidationWarning(null);
   }
 
-  async function handlePhotoUpload(event) {
-    const file = event.target.files?.[0];
-    if (!file || !canUploadMore) return;
-
-    try {
-      const imageDataUrl = await compressImageFile(file, { maxDimension: 960, quality: 0.68 });
+  function addSeeOnMePhoto(imageDataUrl) {
       const nextPhoto = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         imageUrl: imageDataUrl
@@ -1228,11 +1260,42 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
       setErrorMessage('');
       setServiceError(null);
       setValidationWarning(null);
+  }
+
+  async function handlePhotoUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file || !canUploadMore) return;
+
+    try {
+      const imageDataUrl = await compressImageFile(file, { maxDimension: 960, quality: 0.68 });
+      addSeeOnMePhoto(imageDataUrl);
     } catch {
       setErrorMessage(t('seeOnMe.uploadFailed'));
     } finally {
       event.target.value = '';
     }
+  }
+
+  async function handleNativeSeeOnMePhotoPick(source, fallbackInputRef) {
+    if (!canUploadMore) return;
+
+    try {
+      const imageDataUrl = await pickNativeImageDataUrl({
+        source,
+        maxDimension: 960,
+        quality: 0.68
+      });
+
+      if (imageDataUrl) {
+        addSeeOnMePhoto(imageDataUrl);
+        return;
+      }
+    } catch (error) {
+      if (isNativeImagePickerCancel(error)) return;
+      setErrorMessage(t('seeOnMe.uploadFailed'));
+    }
+
+    fallbackInputRef.current?.click();
   }
 
   function handleRemoveCurrentPhoto() {
@@ -1358,10 +1421,16 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
             <h4 className="text-sm font-semibold text-slate-950">{t('seeOnMe.photoTitle')}</h4>
             <p className="mt-1 text-xs text-slate-500">{t('seeOnMe.photoDescription')}</p>
           </div>
-          <label className={`shrink-0 rounded-xl px-3 py-2 text-sm font-semibold ${canUploadMore ? 'cursor-pointer border border-slate-300 bg-white text-slate-700' : 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400'}`}>
-            {t('seeOnMe.uploadNew')}
-            <input type="file" accept="image/*" className="sr-only" disabled={!canUploadMore} onChange={handlePhotoUpload} />
-          </label>
+          <div className="grid shrink-0 grid-cols-2 gap-2">
+            <button type="button" onClick={() => handleNativeSeeOnMePhotoPick(imageSources.photos, seeOnMeLibraryInputRef)} disabled={!canUploadMore} className={`rounded-xl px-3 py-2 text-sm font-semibold ${canUploadMore ? 'border border-slate-300 bg-white text-slate-700' : 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400'}`}>
+              {t('seeOnMe.uploadNew')}
+            </button>
+            <button type="button" onClick={() => handleNativeSeeOnMePhotoPick(imageSources.camera, seeOnMeCameraInputRef)} disabled={!canUploadMore} className={`rounded-xl px-3 py-2 text-sm font-semibold ${canUploadMore ? 'border border-slate-300 bg-white text-slate-700' : 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400'}`}>
+              {t('buttons.takePhoto')}
+            </button>
+            <input ref={seeOnMeLibraryInputRef} type="file" accept="image/*" className="sr-only" disabled={!canUploadMore} onChange={handlePhotoUpload} />
+            <input ref={seeOnMeCameraInputRef} type="file" accept="image/*" capture="user" className="sr-only" disabled={!canUploadMore} onChange={handlePhotoUpload} />
+          </div>
         </div>
 
         {appearanceProfile.photos.length ? (
@@ -1928,6 +1997,7 @@ export default function App() {
     setMessage('');
     setMessageTone('info');
     setIsSuggesting(true);
+    setSuggestion(null);
     addMonitoringBreadcrumb('outfit', 'suggest:start', {
       occasion,
       season,
@@ -2372,7 +2442,7 @@ export default function App() {
               <small>{t('app.eyebrow')}</small>
             </div>
           </div>
-            <button type="button" onClick={() => setActivePage('profile')} className={`aura-plan-pill ${accessStatus.hasFullAccess ? 'is-premium' : ''}`}>
+            <button type="button" onClick={accessStatus.hasFullAccess ? () => setActivePage('profile') : openPaywall} className={`aura-plan-pill ${accessStatus.hasFullAccess ? 'is-premium' : ''}`}>
               {accessStatus.isPremium
                 ? t(accessStatus.subscriptionLabelKey)
                 : accessStatus.isTrialActive

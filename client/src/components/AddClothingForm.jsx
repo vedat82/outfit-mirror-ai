@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { analyzeImage } from '../api/ai.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
-import { compressImageFile } from '../utils/imageCompression.js';
+import { compressImageFile, createItemPreviewImages } from '../utils/imageCompression.js';
+import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from '../utils/nativeImagePicker.js';
 
 const types = ['tshirt', 'shirt', 'long sleeve', 'jacket', 'pants', 'shoes'];
 const colors = ['black', 'white', 'gray', 'blue', 'navy', 'beige', 'brown', 'red', 'green', 'pink', 'cream'];
@@ -16,6 +17,7 @@ const initialForm = {
   style: 'casual',
   confidence: 1,
   selected: true,
+  imageUrl: '',
   uncertainFields: []
 };
 
@@ -27,6 +29,8 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
   const [analysisError, setAnalysisError] = useState('');
   const [analysisMessage, setAnalysisMessage] = useState('');
   const [submitError, setSubmitError] = useState('');
+  const libraryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const canUseImageUpload = accessStatus.canUseImageUpload;
 
   useEffect(() => {
@@ -50,7 +54,7 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
     return matchedOption ?? cleanValue;
   }
 
-  function makeDetectedItem(item, index) {
+  function makeDetectedItem(item, index, imageUrl = '') {
     return {
       id: Date.now() + index,
       type: item.type,
@@ -59,6 +63,7 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
       style: item.style,
       confidence: Number.isFinite(Number(item.confidence)) ? Number(item.confidence) : 1,
       selected: Number(item.confidence) >= 0.65 && !item.usedFallback,
+      imageUrl,
       uncertainFields: Array.isArray(item.uncertainFields) ? item.uncertainFields : []
     };
   }
@@ -91,10 +96,7 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
     setDetectedItems((current) => current.map((item) => (item.id === itemId ? { ...item, selected: event.target.checked } : item)));
   }
 
-  async function handleImageChange(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  async function analyzeSelectedImage(imageDataUrl) {
     if (previewImage.startsWith('blob:')) {
       URL.revokeObjectURL(previewImage);
     }
@@ -105,26 +107,59 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
     setSubmitError('');
 
     try {
-      const imageDataUrl = await compressImageFile(file, { maxDimension: 1280, quality: 0.78 });
       setPreviewImage(imageDataUrl);
 
       try {
         const analysis = await analyzeImage({ mode: 'clothing', imageDataUrl, language });
         const items = Array.isArray(analysis.items) ? analysis.items : [];
-        setDetectedItems(items.map(makeDetectedItem));
+        const itemPreviews = await createItemPreviewImages(imageDataUrl, Math.max(1, items.length), { size: 720, quality: 0.72 });
+        setDetectedItems((items.length ? items : [initialForm]).map((item, index) => makeDetectedItem(item, index, itemPreviews[index] || imageDataUrl)));
         setAnalysisMessage(analysis.messageKey ? t(analysis.messageKey) : analysis.message || '');
         setAnalysisState(analysis.usedFallback || analysis.message ? 'review' : 'ready');
       } catch (error) {
-        setDetectedItems([initialForm]);
+        setDetectedItems([{ ...initialForm, id: Date.now(), imageUrl }]);
         setAnalysisError(error.message?.startsWith('messages.') ? t(error.message) : error.message?.includes('OPENAI_API_KEY') ? t('messages.aiConfigMissing') : t('addClothes.aiAnalysisFailed'));
         setAnalysisState('error');
       }
     } catch {
       setAnalysisError(t('addClothes.aiAnalysisFailed'));
       setAnalysisState('error');
+    }
+  }
+
+  async function handleImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const imageDataUrl = await compressImageFile(file, { maxDimension: 1280, quality: 0.78 });
+      await analyzeSelectedImage(imageDataUrl);
     } finally {
       event.target.value = '';
     }
+  }
+
+  async function handleNativeImagePick(source, fallbackInputRef) {
+    if (!canUseImageUpload || isLoading) return;
+
+    try {
+      const imageDataUrl = await pickNativeImageDataUrl({
+        source,
+        maxDimension: 1280,
+        quality: 0.78
+      });
+
+      if (imageDataUrl) {
+        await analyzeSelectedImage(imageDataUrl);
+        return;
+      }
+    } catch (error) {
+      if (isNativeImagePickerCancel(error)) return;
+      setAnalysisError(t('addClothes.aiAnalysisFailed'));
+      setAnalysisState('error');
+    }
+
+    fallbackInputRef.current?.click();
   }
 
   function getAnalysisTitle() {
@@ -176,7 +211,7 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
       color: normalizeOption('colors', item.color, colors),
       season: item.season,
       style: item.style,
-      imageUrl: previewImage
+      imageUrl: item.imageUrl || previewImage
     }));
 
     try {
@@ -217,14 +252,24 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
         <div className="grid gap-2 text-sm font-medium text-slate-700">
           <p>{t('addClothes.photo')}</p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <label className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${canUseImageUpload ? 'cursor-pointer border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'}`}>
+            <button
+              type="button"
+              onClick={() => handleNativeImagePick(imageSources.photos, libraryInputRef)}
+              disabled={isLoading || !canUseImageUpload}
+              className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${canUseImageUpload ? 'cursor-pointer border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'}`}
+            >
               {!canUseImageUpload ? '🔒 ' : ''}{previewImage ? t('buttons.changePhoto') : t('buttons.uploadPhoto')}
-              <input type="file" accept="image/*" className="sr-only" onChange={handleImageChange} disabled={isLoading || !canUseImageUpload} />
-            </label>
-            <label className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${canUseImageUpload ? 'cursor-pointer border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'}`}>
+            </button>
+            <input ref={libraryInputRef} type="file" accept="image/*" className="sr-only" onChange={handleImageChange} disabled={isLoading || !canUseImageUpload} />
+            <button
+              type="button"
+              onClick={() => handleNativeImagePick(imageSources.camera, cameraInputRef)}
+              disabled={isLoading || !canUseImageUpload}
+              className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${canUseImageUpload ? 'cursor-pointer border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700' : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'}`}
+            >
               {!canUseImageUpload ? '🔒 ' : ''}{t('buttons.takePhoto')}
-              <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleImageChange} disabled={isLoading || !canUseImageUpload} />
-            </label>
+            </button>
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handleImageChange} disabled={isLoading || !canUseImageUpload} />
           </div>
           {!canUseImageUpload ? <p className="mt-2 text-xs font-semibold text-amber-700">🔒 {t('premium.availableInPremium')}</p> : null}
         </div>
@@ -251,7 +296,7 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
           <div key={item.id} className="grid w-full max-w-full min-w-0 gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                {previewImage ? <img src={previewImage} alt={t('addClothes.previewAlt')} className="h-14 w-14 shrink-0 rounded-xl object-cover" loading="lazy" decoding="async" /> : null}
+                {item.imageUrl || previewImage ? <img src={item.imageUrl || previewImage} alt={t('addClothes.previewAlt')} className="h-14 w-14 shrink-0 rounded-xl bg-slate-100 object-cover" loading="lazy" decoding="async" /> : null}
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                     {t('addClothes.detectedItemTitle', { number: index + 1 })}

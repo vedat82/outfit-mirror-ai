@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { analyzeImage } from '../api/ai.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { compressImageFile } from '../utils/imageCompression.js';
+import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from '../utils/nativeImagePicker.js';
 
 export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceProfile, preferences }) {
   const { t, language } = useI18n();
@@ -9,50 +10,73 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
   const [analysis, setAnalysis] = useState(null);
   const [analysisState, setAnalysisState] = useState('idle');
   const [analysisError, setAnalysisError] = useState('');
+  const libraryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const canUseOutfitPhotoAnalysis = accessStatus.canUseOutfitPhotoAnalysis;
 
   function isUncertain(fieldName) {
     return analysis?.uncertainFields?.includes(fieldName) || analysis?.confidence < 0.65;
   }
 
+  async function analyzeSelectedPhoto(imageDataUrl) {
+    setAnalysis(null);
+    setAnalysisError('');
+    setAnalysisState('analyzing');
+    setPreviewImage(imageDataUrl);
+
+    try {
+      const result = await analyzeImage({ mode: 'outfit', imageDataUrl, language, appearanceProfile, preferences });
+      const translatedMessage = result.messageKey ? t(result.messageKey) : result.message || '';
+      const resultSuggestions = Array.isArray(result.suggestions) ? result.suggestions : [];
+      setAnalysis({
+        score: Math.max(1, Math.min(10, Math.round(Number(result.rating) || 7))),
+        feedback: result.usedFallback && translatedMessage ? translatedMessage : result.feedback,
+        suggestions: result.usedFallback && translatedMessage ? [translatedMessage] : resultSuggestions,
+        confidence: Number.isFinite(Number(result.confidence)) ? Number(result.confidence) : 1,
+        uncertainFields: Array.isArray(result.uncertainFields) ? result.uncertainFields : [],
+        message: translatedMessage,
+        usedFallback: Boolean(result.usedFallback)
+      });
+      setAnalysisState(result.usedFallback || result.message ? 'review' : 'ready');
+    } catch (error) {
+      setAnalysisError(error.message?.startsWith('messages.') ? t(error.message) : error.message?.includes('OPENAI_API_KEY') ? t('messages.aiConfigMissing') : t('outfitAnalysis.aiAnalysisFailed'));
+      setAnalysisState('error');
+    }
+  }
+
   function handlePhotoChange(event) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setAnalysis(null);
-    setAnalysisError('');
-    setAnalysisState('analyzing');
-
-    async function analyzePhoto() {
-      const imageDataUrl = await compressImageFile(file, { maxDimension: 1280, quality: 0.78 });
-      setPreviewImage(imageDataUrl);
-
-      try {
-        const result = await analyzeImage({ mode: 'outfit', imageDataUrl, language, appearanceProfile, preferences });
-        const translatedMessage = result.messageKey ? t(result.messageKey) : result.message || '';
-        const resultSuggestions = Array.isArray(result.suggestions) ? result.suggestions : [];
-        setAnalysis({
-          score: result.rating,
-          feedback: result.usedFallback && translatedMessage ? translatedMessage : result.feedback,
-          suggestions: result.usedFallback && translatedMessage ? [translatedMessage] : resultSuggestions,
-          confidence: Number.isFinite(Number(result.confidence)) ? Number(result.confidence) : 1,
-          uncertainFields: Array.isArray(result.uncertainFields) ? result.uncertainFields : [],
-          message: translatedMessage,
-          usedFallback: Boolean(result.usedFallback)
-        });
-        setAnalysisState(result.usedFallback || result.message ? 'review' : 'ready');
-      } catch (error) {
-        setAnalysisError(error.message?.startsWith('messages.') ? t(error.message) : error.message?.includes('OPENAI_API_KEY') ? t('messages.aiConfigMissing') : t('outfitAnalysis.aiAnalysisFailed'));
-        setAnalysisState('error');
-      }
-    }
-
-    analyzePhoto().catch(() => {
+    compressImageFile(file, { maxDimension: 1280, quality: 0.78 }).then(analyzeSelectedPhoto).catch(() => {
       setAnalysisError(t('outfitAnalysis.aiAnalysisFailed'));
       setAnalysisState('error');
     }).finally(() => {
       event.target.value = '';
     });
+  }
+
+  async function handleNativePhotoPick(source, fallbackInputRef) {
+    if (!canUseOutfitPhotoAnalysis) return;
+
+    try {
+      const imageDataUrl = await pickNativeImageDataUrl({
+        source,
+        maxDimension: 1280,
+        quality: 0.78
+      });
+
+      if (imageDataUrl) {
+        await analyzeSelectedPhoto(imageDataUrl);
+        return;
+      }
+    } catch (error) {
+      if (isNativeImagePickerCancel(error)) return;
+      setAnalysisError(t('outfitAnalysis.aiAnalysisFailed'));
+      setAnalysisState('error');
+    }
+
+    fallbackInputRef.current?.click();
   }
 
   return (
@@ -63,13 +87,19 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
       </div>
 
       <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4">
-        <label className="grid cursor-pointer gap-2 text-sm font-medium text-slate-700">
+        <div className="grid gap-2 text-sm font-medium text-slate-700">
           {t('outfitAnalysis.photo')}
-          <span className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${canUseOutfitPhotoAnalysis ? 'border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700' : 'border-slate-200 bg-slate-100 text-slate-400'}`}>
-            {!canUseOutfitPhotoAnalysis ? '🔒 ' : ''}{previewImage ? t('buttons.changePhoto') : t('buttons.uploadOutfitPhoto')}
-          </span>
-          <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoChange} disabled={!canUseOutfitPhotoAnalysis} />
-        </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => handleNativePhotoPick(imageSources.photos, libraryInputRef)} disabled={!canUseOutfitPhotoAnalysis} className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${canUseOutfitPhotoAnalysis ? 'border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700' : 'border-slate-200 bg-slate-100 text-slate-400'}`}>
+              {!canUseOutfitPhotoAnalysis ? '🔒 ' : ''}{previewImage ? t('buttons.changePhoto') : t('buttons.uploadOutfitPhoto')}
+            </button>
+            <button type="button" onClick={() => handleNativePhotoPick(imageSources.camera, cameraInputRef)} disabled={!canUseOutfitPhotoAnalysis} className={`rounded-md border px-3 py-2 text-center text-sm font-semibold transition ${canUseOutfitPhotoAnalysis ? 'border-slate-300 bg-white text-slate-700 hover:border-teal-500 hover:text-teal-700' : 'border-slate-200 bg-slate-100 text-slate-400'}`}>
+              {!canUseOutfitPhotoAnalysis ? '🔒 ' : ''}{t('buttons.takePhoto')}
+            </button>
+          </div>
+          <input ref={libraryInputRef} type="file" accept="image/*" className="sr-only" onChange={handlePhotoChange} disabled={!canUseOutfitPhotoAnalysis} />
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={handlePhotoChange} disabled={!canUseOutfitPhotoAnalysis} />
+        </div>
         {!canUseOutfitPhotoAnalysis ? <p className="mt-2 text-xs font-semibold text-amber-700">🔒 {t('premium.availableInPremium')}</p> : null}
 
         {previewImage ? (
