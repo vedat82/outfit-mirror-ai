@@ -35,7 +35,7 @@ export default function AppearanceProfile({ profile, accessStatus, onSave, showP
     if (files.length === 0) return;
 
     files.forEach((file, index) => {
-      compressImageFile(file, { maxDimension: 960, quality: 0.74 }).then((imageDataUrl) => {
+      compressImageFile(file, { maxDimension: 840, quality: 0.68 }).then((imageDataUrl) => {
         setDraftProfile((current) => {
           const nextPhotos = [
             ...current.photos,

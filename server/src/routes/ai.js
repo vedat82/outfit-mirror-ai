@@ -854,6 +854,7 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
   const outfit = req.body?.outfit && typeof req.body.outfit === 'object' ? req.body.outfit : null;
   const appearanceProfile = req.body?.appearanceProfile && typeof req.body.appearanceProfile === 'object' ? req.body.appearanceProfile : {};
   const preferences = req.body?.preferences && typeof req.body.preferences === 'object' ? req.body.preferences : {};
+  const continueAnyway = Boolean(req.body?.continueAnyway);
   const usage = getSeeOnMeUsage(userId, accessTier);
   const adminBypass = isAdminBypass(req);
   addBackendBreadcrumb(req, 'ai', 'see-on-me:start', {
@@ -980,11 +981,20 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
         });
       }
 
-      return res.status(422).json({
-        message: validation.message || seeOnMeUnavailableMessageKey,
-        messageKey: 'seeOnMe.validationFailed',
-        validation,
-        usage
+      if (!validation.canContinue) {
+        return res.status(422).json({
+          message: validation.message || seeOnMeUnavailableMessageKey,
+          messageKey: 'seeOnMe.validationFailed',
+          validation,
+          usage
+        });
+      }
+
+      console.log('[ai/see-on-me] continuing with borderline photo by user choice', {
+        userId,
+        accessTier,
+        issues: validation.issues,
+        confidence: validation.confidence
       });
     }
 

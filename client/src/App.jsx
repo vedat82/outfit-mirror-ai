@@ -1213,7 +1213,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     if (!file || !canUploadMore) return;
 
     try {
-      const imageDataUrl = await compressImageFile(file, { maxDimension: 1280, quality: 0.78 });
+      const imageDataUrl = await compressImageFile(file, { maxDimension: 960, quality: 0.68 });
       const nextPhoto = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         imageUrl: imageDataUrl

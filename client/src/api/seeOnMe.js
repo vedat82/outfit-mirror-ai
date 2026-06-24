@@ -1,6 +1,7 @@
 import { getAccessStatus, getLocalUserId } from './userIdentity.js';
 import { addMonitoringBreadcrumb, captureAppError } from '../monitoring/sentry.js';
 import { detectPaymentPlatform } from '../utils/platform.js';
+import { sanitizeAppearanceProfileForSeeOnMe } from '../utils/seeOnMePayload.js';
 import { fetchJson } from './http.js';
 
 function seeOnMeHeaders() {
@@ -47,7 +48,14 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
       method: 'POST',
       headers: seeOnMeHeaders(),
       signal: controller.signal,
-      body: JSON.stringify({ imageDataUrl, outfit, appearanceProfile, preferences, language, continueAnyway })
+      body: JSON.stringify({
+        imageDataUrl,
+        outfit,
+        appearanceProfile: sanitizeAppearanceProfileForSeeOnMe(appearanceProfile),
+        preferences,
+        language,
+        continueAnyway
+      })
     }, 'see-on-me:generate');
 
     handleResponse(response, data, 'see-on-me-generate', { url, responseText });
