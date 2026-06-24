@@ -458,14 +458,51 @@ html[data-form-focused="true"] .bottom-tabbar {
   border-radius: 8px;
   background: var(--aura-surface);
   padding: 8px;
+  color: inherit;
+  text-align: left;
   scroll-snap-align: start;
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
-.aura-review-card img {
+.aura-review-card:active {
+  transform: scale(0.985);
+}
+
+.aura-review-card:hover {
+  border-color: #99d9cf;
+  box-shadow: 0 10px 24px rgb(24 29 27 / 0.08);
+}
+
+.aura-history-preview {
+  display: grid;
   width: 72px;
   height: 76px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
   border-radius: 5px;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.aura-history-piece {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  background: var(--piece-color, #e2e8f0);
+}
+
+.aura-history-piece img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+}
+
+.aura-history-piece small,
+.aura-history-preview > small {
+  color: rgb(15 23 42 / 0.75);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .aura-review-card p,

@@ -70,6 +70,23 @@ const onboardingStyles = ['casual', 'sporty', 'classic'];
 const onboardingStyleGoals = ['look bigger', 'slimmer', 'casual', 'elegant'];
 const onboardingColors = ['black', 'white', 'gray', 'navy', 'beige', 'brown', 'red', 'green'];
 const onboardingBodyTypes = ['slim', 'athletic', 'muscular', 'bulky', 'overweight', 'skinny-fat', 'petite', 'plus-size'];
+const colorHexMap = {
+  black: '#111827',
+  white: '#f8fafc',
+  gray: '#94a3b8',
+  blue: '#3b82f6',
+  navy: '#172554',
+  beige: '#d6c7a1',
+  brown: '#7c4a2d',
+  red: '#dc2626',
+  green: '#16a34a',
+  pink: '#ec4899',
+  cream: '#f5ead2'
+};
+
+function getColorHex(color) {
+  return colorHexMap[color] || '#e2e8f0';
+}
 
 function getOutfitSignature(outfit) {
   if (!outfit) return '';
@@ -475,7 +492,23 @@ function OutfitResultCard({ suggestion, isFeedbackLoading, onFeedback, onAddClot
   );
 }
 
-function HomeTab({ outfitHistory, accessStatus, onAnalyze, onSeeOnMe, onOpenPaywall }) {
+function HomeHistoryPreview({ outfit }) {
+  const { t, optionLabel } = useI18n();
+  const items = [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean);
+
+  return (
+    <div className="aura-history-preview" aria-hidden="true">
+      {items.map((item, index) => (
+        <span key={`${item.id || item.type}-${index}`} className="aura-history-piece" style={{ '--piece-color': getColorHex(item.color) }}>
+          {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" decoding="async" /> : <small>{optionLabel('types', item.type).slice(0, 1)}</small>}
+        </span>
+      ))}
+      {!items.length ? <small>{t('home2.outfitBadge')}</small> : null}
+    </div>
+  );
+}
+
+function HomeTab({ outfitHistory, suggestion, accessStatus, onAnalyze, onSeeOnMe, onOpenPaywall, onSelectOutfit, onFeedback, isFeedbackLoading, hasEnoughWardrobe, onAddClothes }) {
   const { t, optionLabel } = useI18n();
   const recentReviews = outfitHistory.slice(0, 3);
 
@@ -506,6 +539,25 @@ function HomeTab({ outfitHistory, accessStatus, onAnalyze, onSeeOnMe, onOpenPayw
         </div>
       </section>
 
+      {suggestion ? (
+        <section className="aura-section">
+          <div className="aura-section-heading">
+            <div>
+              <p className="aura-kicker">{t('home2.selectedKicker')}</p>
+              <h3>{t('home2.selectedTitle')}</h3>
+            </div>
+          </div>
+          <OutfitResultCard
+            suggestion={suggestion}
+            isFeedbackLoading={isFeedbackLoading}
+            onFeedback={onFeedback}
+            onAddClothes={onAddClothes}
+            onSeeOnMe={onSeeOnMe}
+            hasEnoughWardrobe={hasEnoughWardrobe}
+          />
+        </section>
+      ) : null}
+
       <section className="aura-section">
         <div className="aura-section-heading">
           <div>
@@ -520,16 +572,15 @@ function HomeTab({ outfitHistory, accessStatus, onAnalyze, onSeeOnMe, onOpenPayw
         {recentReviews.length ? (
           <div className="aura-carousel" aria-label={t('home2.recentTitle')}>
             {recentReviews.map((outfit, index) => {
-              const image = outfit.top?.imageUrl || outfit.jacket?.imageUrl || stylistHero;
               return (
-                <article className="aura-review-card" key={outfit.historyId || index}>
-                  <img src={image} alt="" loading="lazy" />
+                <button type="button" className="aura-review-card" key={outfit.historyId || index} onClick={() => onSelectOutfit(outfit)}>
+                  <HomeHistoryPreview outfit={outfit} />
                   <div>
                     <span className="aura-score">{t('home2.outfitBadge')}</span>
                     <p>{t('home2.reviewVerdict')}</p>
                     <small>{optionLabel('occasions', outfit.occasion || 'daily')}</small>
                   </div>
-                </article>
+                </button>
               );
             })}
           </div>
@@ -2031,6 +2082,12 @@ export default function App() {
     }
   }
 
+  function handleSelectOutfitFromHistory(outfit) {
+    setMessage('');
+    setMessageTone('info');
+    setSuggestion(outfit);
+  }
+
   useEffect(() => {
     loadClothes();
     loadLikedOutfits();
@@ -2455,9 +2512,15 @@ export default function App() {
           {activePage === 'home' ? (
             <HomeTab
               outfitHistory={outfitHistory}
+              suggestion={suggestion}
               accessStatus={accessStatus}
               onOpenPaywall={openPaywall}
               onSeeOnMe={handleSeeOnMe}
+              onSelectOutfit={handleSelectOutfitFromHistory}
+              onFeedback={handleOutfitFeedback}
+              isFeedbackLoading={isSavingFeedback}
+              hasEnoughWardrobe={hasEnoughWardrobe}
+              onAddClothes={() => setActivePage('wardrobe')}
               onAnalyze={() => {
                 setActiveStudioTool('review');
                 setActivePage('studio');
