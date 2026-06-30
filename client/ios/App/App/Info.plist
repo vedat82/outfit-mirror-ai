@@ -28,6 +28,8 @@
 	<string>Outfit Mirror AI uses the camera so you can photograph clothes and outfits for styling suggestions.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Outfit Mirror AI uses your photo library so you can choose clothing, outfit, and appearance photos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Outfit Mirror AI may save selected camera photos only when needed for your wardrobe and styling previews.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

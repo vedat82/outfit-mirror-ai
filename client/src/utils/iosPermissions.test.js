@@ -7,6 +7,7 @@ const infoPlist = fs.readFileSync(new URL('../../ios/App/App/Info.plist', import
 test('iOS declares permissions required by photo upload flows', () => {
   assert.match(infoPlist, /<key>NSCameraUsageDescription<\/key>/);
   assert.match(infoPlist, /<key>NSPhotoLibraryUsageDescription<\/key>/);
+  assert.match(infoPlist, /<key>NSPhotoLibraryAddUsageDescription<\/key>/);
 });
 
 test('iOS does not declare unused sensitive permissions', () => {
