@@ -87,7 +87,10 @@
     "selectedKicker": "SELECTED OUTFIT",
     "selectedTitle": "Ready to try again",
     "outfitBadge": "Outfit",
+    "reviewBadge": "{{score}}/10",
     "reviewVerdict": "Suggested from your wardrobe",
+    "photoReviewVerdict": "Photo review completed",
+    "openReview": "Open in Mirror",
     "emptyTitle": "Review your first outfit",
     "emptyDescription": "Start with one photo in just a few seconds."
   },
@@ -230,6 +233,7 @@
     "manageInAppStore": "Manage your subscription through the App Store.",
     "privacyDescription": "Photos and personal style data are used only for the features you choose.",
     "helpDescription": "Get support for purchases, photo uploads, and AI features.",
+    "diagnostics": "Test diagnostics",
     "version": "Outfit Mirror AI · Version 1.0"
   },
   "messages": {

@@ -484,6 +484,16 @@ html[data-form-focused="true"] .bottom-tabbar {
   background: #f8fafc;
 }
 
+.aura-history-preview.is-review {
+  display: block;
+}
+
+.aura-history-preview.is-review img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .aura-history-piece {
   display: grid;
   min-width: 0;
@@ -826,6 +836,26 @@ html[data-form-focused="true"] .bottom-tabbar {
   height: 16px;
 }
 
+.wardrobe-recommendation-rail {
+  display: grid;
+  grid-auto-columns: minmax(235px, 82%);
+  grid-auto-flow: column;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 16px 8px 0;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wardrobe-recommendation-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.wardrobe-recommendation-rail > article {
+  scroll-snap-align: start;
+}
+
 .wardrobe-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1057,6 +1087,27 @@ html[data-form-focused="true"] .bottom-tabbar {
 .profile-detail-card strong { font-size: 13px; }
 .profile-detail-card p { margin: 4px 0 0; color: var(--aura-muted); font-size: 11px; line-height: 1.5; }
 .profile-version { margin: 24px 0 0; color: #aaa7a1; font-size: 9px; text-align: center; }
+
+.profile-diagnostics {
+  overflow: hidden;
+  border: 1px solid var(--aura-line);
+  border-radius: 8px;
+  background: white;
+  padding: 12px;
+}
+
+.profile-diagnostics h4 { margin: 0 0 10px; font-size: 12px; }
+.profile-diagnostics dl { display: grid; gap: 8px; margin: 0; }
+.profile-diagnostics div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; }
+.profile-diagnostics dt { color: var(--aura-muted); font-size: 10px; font-weight: 700; }
+.profile-diagnostics dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--aura-ink);
+  font-size: 10px;
+  font-weight: 650;
+}
 
 @media (min-width: 640px) {
   .aura-page,

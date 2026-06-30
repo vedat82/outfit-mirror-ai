@@ -87,7 +87,10 @@
     "selectedKicker": "SEÇİLİ KOMBİN",
     "selectedTitle": "Tekrar denemeye hazır",
     "outfitBadge": "Kombin",
+    "reviewBadge": "{{score}}/10",
     "reviewVerdict": "Gardırobundan önerildi",
+    "photoReviewVerdict": "Fotoğraf analizi tamamlandı",
+    "openReview": "Mirror'da aç",
     "emptyTitle": "İlk kombinini incele",
     "emptyDescription": "Bir fotoğrafla birkaç saniyede başlayabilirsin."
   },
@@ -230,6 +233,7 @@
     "manageInAppStore": "Aboneliğini App Store üzerinden yönetebilirsin.",
     "privacyDescription": "Fotoğraflar ve kişisel stil verileri yalnızca istediğin özellikler için kullanılır.",
     "helpDescription": "Satın alma, fotoğraf yükleme ve AI özellikleri için destek al.",
+    "diagnostics": "Test tanılama",
     "version": "Outfit Mirror AI · Sürüm 1.0"
   },
   "messages": {

@@ -3,6 +3,7 @@ import { analyzeImage } from '../api/ai.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { compressImageFile, createItemPreviewImages } from '../utils/imageCompression.js';
 import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from '../utils/nativeImagePicker.js';
+import { isNativeApp } from '../utils/platform.js';
 
 const types = ['tshirt', 'shirt', 'long sleeve', 'jacket', 'pants', 'shoes'];
 const colors = ['black', 'white', 'gray', 'blue', 'navy', 'beige', 'brown', 'red', 'green', 'pink', 'cream'];
@@ -157,6 +158,7 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
       if (isNativeImagePickerCancel(error)) return;
       setAnalysisError(t('addClothes.aiAnalysisFailed'));
       setAnalysisState('error');
+      if (isNativeApp()) return;
     }
 
     fallbackInputRef.current?.click();

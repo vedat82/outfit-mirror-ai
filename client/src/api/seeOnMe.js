@@ -4,6 +4,27 @@ import { detectPaymentPlatform } from '../utils/platform.js';
 import { sanitizeAppearanceProfileForSeeOnMe } from '../utils/seeOnMePayload.js';
 import { fetchJson } from './http.js';
 
+const seeOnMeDebugStorageKey = 'outfitMirrorSeeOnMeDebug';
+
+function saveSeeOnMeDebug(event) {
+  try {
+    window.localStorage.setItem(seeOnMeDebugStorageKey, JSON.stringify({
+      ...event,
+      createdAt: new Date().toISOString()
+    }));
+  } catch {
+    // Diagnostics should never block generation.
+  }
+}
+
+export function getSeeOnMeDebug() {
+  try {
+    return JSON.parse(window.localStorage.getItem(seeOnMeDebugStorageKey) || 'null');
+  } catch {
+    return null;
+  }
+}
+
 function seeOnMeHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -59,11 +80,21 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
     }, 'see-on-me:generate');
 
     handleResponse(response, data, 'see-on-me-generate', { url, responseText });
+    saveSeeOnMeDebug({ status: 'success', requestUrl: url, usedFallback: Boolean(data.usedFallback) });
     addMonitoringBreadcrumb('ai', 'see-on-me:success', {
       usedFallback: Boolean(data.usedFallback)
     });
     return data;
   } catch (error) {
+    saveSeeOnMeDebug({
+      status: 'failed',
+      requestUrl: error.requestUrl,
+      httpStatus: error.status,
+      message: error.message,
+      messageKey: error.payload?.messageKey,
+      safeCode: error.payload?.safeCode,
+      category: error.payload?.category
+    });
     if (error.payload || error.status) throw error;
     throw getFriendlyError(error, 'seeOnMe.generationFailed');
   } finally {

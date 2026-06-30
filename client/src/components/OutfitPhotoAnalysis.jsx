@@ -3,8 +3,9 @@ import { analyzeImage } from '../api/ai.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { compressImageFile } from '../utils/imageCompression.js';
 import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from '../utils/nativeImagePicker.js';
+import { isNativeApp } from '../utils/platform.js';
 
-export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceProfile, preferences }) {
+export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceProfile, preferences, onAnalysisComplete }) {
   const { t, language } = useI18n();
   const [previewImage, setPreviewImage] = useState('');
   const [analysis, setAnalysis] = useState(null);
@@ -28,7 +29,7 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
       const result = await analyzeImage({ mode: 'outfit', imageDataUrl, language, appearanceProfile, preferences });
       const translatedMessage = result.messageKey ? t(result.messageKey) : result.message || '';
       const resultSuggestions = Array.isArray(result.suggestions) ? result.suggestions : [];
-      setAnalysis({
+      const nextAnalysis = {
         score: Math.max(1, Math.min(10, Math.round(Number(result.rating) || 7))),
         feedback: result.usedFallback && translatedMessage ? translatedMessage : result.feedback,
         suggestions: result.usedFallback && translatedMessage ? [translatedMessage] : resultSuggestions,
@@ -36,6 +37,16 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
         uncertainFields: Array.isArray(result.uncertainFields) ? result.uncertainFields : [],
         message: translatedMessage,
         usedFallback: Boolean(result.usedFallback)
+      };
+      setAnalysis(nextAnalysis);
+      onAnalysisComplete?.({
+        type: 'review',
+        imageUrl: imageDataUrl,
+        score: nextAnalysis.score,
+        feedback: nextAnalysis.feedback,
+        suggestions: nextAnalysis.suggestions,
+        confidence: nextAnalysis.confidence,
+        createdAt: Date.now()
       });
       setAnalysisState(result.usedFallback || result.message ? 'review' : 'ready');
     } catch (error) {
@@ -74,6 +85,7 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
       if (isNativeImagePickerCancel(error)) return;
       setAnalysisError(t('outfitAnalysis.aiAnalysisFailed'));
       setAnalysisState('error');
+      if (isNativeApp()) return;
     }
 
     fallbackInputRef.current?.click();

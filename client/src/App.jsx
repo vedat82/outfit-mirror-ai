@@ -15,7 +15,7 @@ import { getOnboardingCompleted, getPreferences, savePreferences, setOnboardingC
 import { useI18n } from './i18n/I18nProvider.jsx';
 import { getAppearanceProfile, saveAppearanceProfile } from './api/appearanceProfile.js';
 import { maxAppearancePhotos } from './api/appearanceProfile.js';
-import { generateSeeOnMePreview, getSavedSeeOnMeLooks, saveSeeOnMeLook } from './api/seeOnMe.js';
+import { generateSeeOnMePreview, getSavedSeeOnMeLooks, getSeeOnMeDebug, saveSeeOnMeLook } from './api/seeOnMe.js';
 import { defaultPremiumPlanId, getPlanById } from './config/pricing.js';
 import AppearanceProfile from './components/AppearanceProfile.jsx';
 import OutfitPhotoAnalysis from './components/OutfitPhotoAnalysis.jsx';
@@ -23,11 +23,12 @@ import PaywallScreen from './components/PaywallScreen.jsx';
 import PaymentResultPage from './components/PaymentResultPage.jsx';
 import { getPaymentStatus, resetPaymentStatus, verifyApplePurchase } from './api/payment.js';
 import { getActiveAppleSubscription, isAppleAlreadyPurchased, isApplePurchaseCancelled, purchaseAppleSubscription, restoreAppleSubscriptions } from './api/applePurchases.js';
-import { canUseAppleSubscriptions, detectPaymentPlatform } from './utils/platform.js';
+import { canUseAppleSubscriptions, detectPaymentPlatform, isNativeApp } from './utils/platform.js';
 import { compressImageDataUrl, compressImageFile } from './utils/imageCompression.js';
-import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from './utils/nativeImagePicker.js';
+import { getNativeImagePickerDebug, imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from './utils/nativeImagePicker.js';
 import { canUsePaymentTestHelpers, isCurrentPaymentRequest, isXcodeStoreKitEnvironment, withPaymentTimeout } from './utils/paymentFlow.js';
 import { addMonitoringBreadcrumb, captureAppError } from './monitoring/sentry.js';
+import { getApiBaseUrl } from './api/http.js';
 import stylistHero from './assets/stylist-hero.jpg';
 import {
   ArrowPathIcon,
@@ -494,6 +495,14 @@ function OutfitResultCard({ suggestion, isFeedbackLoading, onFeedback, onAddClot
 
 function HomeHistoryPreview({ outfit }) {
   const { t, optionLabel } = useI18n();
+  if (outfit.type === 'review') {
+    return (
+      <div className="aura-history-preview is-review" aria-hidden="true">
+        <img src={outfit.imageUrl} alt="" loading="lazy" decoding="async" />
+      </div>
+    );
+  }
+
   const items = [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean);
 
   return (
@@ -508,9 +517,12 @@ function HomeHistoryPreview({ outfit }) {
   );
 }
 
-function HomeTab({ outfitHistory, suggestion, accessStatus, onAnalyze, onSeeOnMe, onOpenPaywall, onSelectOutfit, onFeedback, isFeedbackLoading, hasEnoughWardrobe, onAddClothes }) {
+function HomeTab({ outfitHistory, reviewHistory = [], suggestion, accessStatus, onAnalyze, onSeeOnMe, onOpenPaywall, onSelectOutfit, onSelectReview, onFeedback, isFeedbackLoading, hasEnoughWardrobe, onAddClothes }) {
   const { t, optionLabel } = useI18n();
-  const recentReviews = outfitHistory.slice(0, 3);
+  const recentReviews = [
+    ...reviewHistory.map((item) => ({ ...item, sortTime: item.createdAt || 0 })),
+    ...outfitHistory.map((item) => ({ ...item, type: 'outfit', sortTime: Number(String(item.historyId || '').split('-')[0]) || 0 }))
+  ].sort((a, b) => b.sortTime - a.sortTime).slice(0, 3);
 
   return (
     <ScrollPanel className="aura-page">
@@ -572,13 +584,14 @@ function HomeTab({ outfitHistory, suggestion, accessStatus, onAnalyze, onSeeOnMe
         {recentReviews.length ? (
           <div className="aura-carousel" aria-label={t('home2.recentTitle')}>
             {recentReviews.map((outfit, index) => {
+              const isReview = outfit.type === 'review';
               return (
-                <button type="button" className="aura-review-card" key={outfit.historyId || index} onClick={() => onSelectOutfit(outfit)}>
+                <button type="button" className="aura-review-card" key={outfit.historyId || outfit.createdAt || index} onClick={() => (isReview ? onSelectReview(outfit) : onSelectOutfit(outfit))}>
                   <HomeHistoryPreview outfit={outfit} />
                   <div>
-                    <span className="aura-score">{t('home2.outfitBadge')}</span>
-                    <p>{t('home2.reviewVerdict')}</p>
-                    <small>{optionLabel('occasions', outfit.occasion || 'daily')}</small>
+                    <span className="aura-score">{isReview ? t('home2.reviewBadge', { score: outfit.score }) : t('home2.outfitBadge')}</span>
+                    <p>{isReview ? t('home2.photoReviewVerdict') : t('home2.reviewVerdict')}</p>
+                    <small>{isReview ? t('home2.openReview') : optionLabel('occasions', outfit.occasion || 'daily')}</small>
                   </div>
                 </button>
               );
@@ -756,14 +769,10 @@ function WardrobeRecommendationCard({ recommendation }) {
   );
 }
 
-function WardrobeImprovementPanel({ recommendations, visibleCount, activeIndex, onActiveIndexChange, onShowMore }) {
+function WardrobeImprovementPanel({ recommendations, visibleCount, onShowMore }) {
   const { t } = useI18n();
   const visibleRecommendations = recommendations.slice(0, visibleCount);
   const canShowMore = visibleCount < recommendations.length;
-  const effectiveActiveIndex = Math.min(activeIndex, Math.max(0, visibleRecommendations.length - 1));
-  const activeRecommendation = visibleRecommendations[effectiveActiveIndex] || visibleRecommendations[0];
-  const canGoPrevious = effectiveActiveIndex > 0;
-  const canGoNext = effectiveActiveIndex < visibleRecommendations.length - 1;
 
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl border border-teal-100 bg-teal-50 p-4">
@@ -780,35 +789,10 @@ function WardrobeImprovementPanel({ recommendations, visibleCount, activeIndex, 
       </div>
       {visibleRecommendations.length ? (
         <div className="mt-4 grid gap-3">
-          <WardrobeRecommendationCard recommendation={activeRecommendation} />
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => onActiveIndexChange(effectiveActiveIndex - 1)}
-              disabled={!canGoPrevious}
-              className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
-            >
-              {t('buttons.back')}
-            </button>
-            <div className="flex min-w-0 justify-center gap-1.5">
-              {visibleRecommendations.map((recommendation, index) => (
-                <button
-                  key={recommendation.itemKey}
-                  type="button"
-                  onClick={() => onActiveIndexChange(index)}
-                  className={`h-2 rounded-full transition-all ${index === effectiveActiveIndex ? 'w-5 bg-teal-800' : 'w-2 bg-teal-200'}`}
-                  aria-label={`${index + 1}`}
-                />
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => onActiveIndexChange(effectiveActiveIndex + 1)}
-              disabled={!canGoNext}
-              className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-900 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300"
-            >
-              {t('buttons.next')}
-            </button>
+          <div className="wardrobe-recommendation-rail" aria-label={t('wardrobe.improve.title')}>
+            {visibleRecommendations.map((recommendation) => (
+              <WardrobeRecommendationCard key={recommendation.itemKey} recommendation={recommendation} />
+            ))}
           </div>
         </div>
       ) : (
@@ -828,7 +812,6 @@ function LegacyWardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessS
   const [showAdd, setShowAdd] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [visibleRecommendationCount, setVisibleRecommendationCount] = useState(4);
-  const [activeRecommendationIndex, setActiveRecommendationIndex] = useState(0);
 
   const searchSuggestions = useMemo(() => {
     const translatedOptions = [
@@ -955,13 +938,9 @@ function LegacyWardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessS
                 <WardrobeImprovementPanel
                   recommendations={wardrobeRecommendations}
                   visibleCount={visibleRecommendationCount}
-                  activeIndex={Math.min(activeRecommendationIndex, Math.max(0, visibleRecommendationCount - 1))}
-                  onActiveIndexChange={(nextIndex) => setActiveRecommendationIndex(Math.max(0, Math.min(nextIndex, visibleRecommendationCount - 1)))}
                   onShowMore={() => {
                     setVisibleRecommendationCount((value) => {
-                      const nextValue = Math.min(value + 3, wardrobeRecommendations.length);
-                      setActiveRecommendationIndex(value);
-                      return nextValue;
+                      return Math.min(value + 3, wardrobeRecommendations.length);
                     });
                   }}
                 />
@@ -996,7 +975,6 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [visibleRecommendationCount, setVisibleRecommendationCount] = useState(4);
-  const [activeRecommendationIndex, setActiveRecommendationIndex] = useState(0);
 
   const filteredClothes = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
@@ -1092,13 +1070,9 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
               <WardrobeImprovementPanel
                 recommendations={wardrobeRecommendations}
                 visibleCount={visibleRecommendationCount}
-                activeIndex={Math.min(activeRecommendationIndex, Math.max(0, visibleRecommendationCount - 1))}
-                onActiveIndexChange={(nextIndex) => setActiveRecommendationIndex(Math.max(0, Math.min(nextIndex, visibleRecommendationCount - 1)))}
                 onShowMore={() => {
                   setVisibleRecommendationCount((value) => {
-                    const nextValue = Math.min(value + 3, wardrobeRecommendations.length);
-                    setActiveRecommendationIndex(value);
-                    return nextValue;
+                    return Math.min(value + 3, wardrobeRecommendations.length);
                   });
                 }}
               />
@@ -1344,6 +1318,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     } catch (error) {
       if (isNativeImagePickerCancel(error)) return;
       setErrorMessage(t('seeOnMe.uploadFailed'));
+      if (isNativeApp()) return;
     }
 
     fallbackInputRef.current?.click();
@@ -1576,7 +1551,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   );
 }
 
-function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearanceProfile, preferences, onSaveAppearance, activeTool, onActiveToolChange, suggestion, onGenerateNewOutfit, onSavedLook }) {
+function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearanceProfile, preferences, onSaveAppearance, activeTool, onActiveToolChange, suggestion, onGenerateNewOutfit, onSavedLook, onAnalysisComplete }) {
   const { t } = useI18n();
   const locked = !accessStatus.hasFullAccess;
   const mirrorTools = [
@@ -1624,7 +1599,7 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
                   <span>{t('mirror.steps.improve')}</span>
                 </div>
               </div>
-              <OutfitPhotoAnalysis clothes={clothes} accessStatus={accessStatus} appearanceProfile={appearanceProfile} preferences={preferences} />
+              <OutfitPhotoAnalysis clothes={clothes} accessStatus={accessStatus} appearanceProfile={appearanceProfile} preferences={preferences} onAnalysisComplete={onAnalysisComplete} />
             </section>
           ) : null}
           {activeTool === 'see-on-me' ? (
@@ -1716,6 +1691,40 @@ function SavedLooksSection({ likedOutfits, isLoadingLikedOutfits, outfitHistory,
         <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">{t('profile.savedLooksEmpty')}</p>
       )}
     </SoftCard>
+  );
+}
+
+function DiagnosticsCard() {
+  const { t } = useI18n();
+  const pickerDebug = getNativeImagePickerDebug();
+  const seeOnMeDebug = getSeeOnMeDebug();
+  const apiBaseUrl = getApiBaseUrl() || '(relative)';
+  const values = [
+    ['Environment', import.meta.env.MODE || 'unknown'],
+    ['Native', isNativeApp() ? 'yes' : 'no'],
+    ['Capacitor', window.Capacitor?.getPlatform?.() || 'missing'],
+    ['API', apiBaseUrl],
+    ['Build', import.meta.env.VITE_APP_BUILD || import.meta.env.VITE_APP_VERSION || 'local'],
+    ['Picker', pickerDebug ? `${pickerDebug.source || '-'} / ${pickerDebug.status || '-'}` : '-'],
+    ['Picker time', pickerDebug?.createdAt || '-'],
+    ['Picker message', pickerDebug?.message || '-'],
+    ['See On Me', seeOnMeDebug ? `${seeOnMeDebug.status || '-'} / ${seeOnMeDebug.messageKey || seeOnMeDebug.message || '-'}` : '-'],
+    ['See status', seeOnMeDebug?.httpStatus || '-'],
+    ['See code', seeOnMeDebug?.safeCode || seeOnMeDebug?.category || '-']
+  ];
+
+  return (
+    <section className="profile-diagnostics">
+      <h4>{t('profile2.diagnostics')}</h4>
+      <dl>
+        {values.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -1908,7 +1917,12 @@ function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatf
         </section>
       ) : null}
       {activeSection === 'privacy' ? <section className="profile-detail-card"><ShieldCheckIcon aria-hidden="true" /><div><strong>{t('profile2.privacy')}</strong><p>{t('profile2.privacyDescription')}</p></div></section> : null}
-      {activeSection === 'help' ? <section className="profile-detail-card"><QuestionMarkCircleIcon aria-hidden="true" /><div><strong>{t('profile2.help')}</strong><p>{t('profile2.helpDescription')}</p></div></section> : null}
+      {activeSection === 'help' ? (
+        <div className="grid gap-3">
+          <section className="profile-detail-card"><QuestionMarkCircleIcon aria-hidden="true" /><div><strong>{t('profile2.help')}</strong><p>{t('profile2.helpDescription')}</p></div></section>
+          <DiagnosticsCard />
+        </div>
+      ) : null}
 
       <p className="profile-version">{t('profile2.version')}</p>
     </ScrollPanel>
@@ -1946,6 +1960,7 @@ export default function App() {
   const [likedOutfits, setLikedOutfits] = useState([]);
   const [savedLooks, setSavedLooks] = useState([]);
   const [outfitHistory, setOutfitHistory] = useState([]);
+  const [reviewHistory, setReviewHistory] = useState([]);
   const paymentRequestRef = useRef(0);
   const suggestionPreferences = {
     ...preferences,
@@ -2086,6 +2101,15 @@ export default function App() {
     setMessage('');
     setMessageTone('info');
     setSuggestion(outfit);
+  }
+
+  function handleOutfitAnalysisComplete(analysis) {
+    setReviewHistory((current) => [{ ...analysis, id: `${Date.now()}-${Math.random().toString(36).slice(2)}` }, ...current].slice(0, 6));
+  }
+
+  function handleSelectReviewFromHistory() {
+    setActiveStudioTool('review');
+    setActivePage('studio');
   }
 
   useEffect(() => {
@@ -2512,11 +2536,13 @@ export default function App() {
           {activePage === 'home' ? (
             <HomeTab
               outfitHistory={outfitHistory}
+              reviewHistory={reviewHistory}
               suggestion={suggestion}
               accessStatus={accessStatus}
               onOpenPaywall={openPaywall}
               onSeeOnMe={handleSeeOnMe}
               onSelectOutfit={handleSelectOutfitFromHistory}
+              onSelectReview={handleSelectReviewFromHistory}
               onFeedback={handleOutfitFeedback}
               isFeedbackLoading={isSavingFeedback}
               hasEnoughWardrobe={hasEnoughWardrobe}
@@ -2551,6 +2577,7 @@ export default function App() {
               onSaveAppearance={handleSaveAppearanceProfile}
               onGenerateNewOutfit={handleSuggest}
               onSavedLook={handleSavedLook}
+              onAnalysisComplete={handleOutfitAnalysisComplete}
             />
           ) : (
             <ProfileTab

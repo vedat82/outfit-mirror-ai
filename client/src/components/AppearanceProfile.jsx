@@ -3,6 +3,7 @@ import { maxAppearancePhotos } from '../api/appearanceProfile.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { compressImageFile } from '../utils/imageCompression.js';
 import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from '../utils/nativeImagePicker.js';
+import { isNativeApp } from '../utils/platform.js';
 
 const genders = ['male', 'female', 'non-binary', 'prefer not to say'];
 const bodyTypes = ['slim', 'athletic', 'muscular', 'bulky', 'overweight', 'skinny-fat', 'petite', 'plus-size'];
@@ -78,6 +79,7 @@ export default function AppearanceProfile({ profile, accessStatus, onSave, showP
       }
     } catch (error) {
       if (isNativeImagePickerCancel(error)) return;
+      if (isNativeApp()) return;
     }
 
     fallbackInputRef.current?.click();

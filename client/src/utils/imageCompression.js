@@ -91,10 +91,6 @@ export async function createItemPreviewImages(dataUrl, count, options = {}) {
   } = options;
   const itemCount = Math.max(1, Math.min(6, Number(count) || 1));
 
-  if (itemCount === 1) {
-    return [await compressImageDataUrl(dataUrl, { maxDimension: size, quality, mimeType })];
-  }
-
   const image = await loadImage(dataUrl);
   const columns = itemCount <= 2 ? itemCount : 2;
   const rows = Math.ceil(itemCount / columns);
