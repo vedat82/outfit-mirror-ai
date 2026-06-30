@@ -56,24 +56,86 @@ function getFriendlyError(error, fallbackKey) {
   return new Error(fallbackKey);
 }
 
+async function compressOptionalImageUrl(imageUrl, options) {
+  if (!String(imageUrl || '').startsWith('data:image/')) {
+    return imageUrl || '';
+  }
+
+  try {
+    return await compressImageDataUrlToBudget(imageUrl, options);
+  } catch {
+    return '';
+  }
+}
+
+async function prepareOutfitForSeeOnMe(outfit = {}) {
+  const nextOutfit = { ...outfit };
+  const referenceOptions = {
+    maxBytes: 115000,
+    maxDimension: 420,
+    minDimension: 260,
+    quality: 0.52,
+    minQuality: 0.34
+  };
+
+  for (const key of ['top', 'bottom', 'shoes', 'jacket']) {
+    if (!nextOutfit[key]) continue;
+
+    const nextItem = { ...nextOutfit[key] };
+    if (nextItem.imageUrl) {
+      const compressedImageUrl = await compressOptionalImageUrl(nextItem.imageUrl, referenceOptions);
+      if (compressedImageUrl) {
+        nextItem.imageUrl = compressedImageUrl;
+      } else {
+        delete nextItem.imageUrl;
+      }
+    }
+    nextOutfit[key] = nextItem;
+  }
+
+  return nextOutfit;
+}
+
+function getPayloadBytes(payload) {
+  try {
+    return JSON.stringify(payload).length;
+  } catch {
+    return 0;
+  }
+}
+
 export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceProfile, preferences, language, continueAnyway = false }) {
   const accessStatus = getAccessStatus();
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 90000);
   const requestImageDataUrl = await compressImageDataUrlToBudget(imageDataUrl, {
-    maxBytes: 850000,
-    maxDimension: 860,
-    quality: 0.64
+    maxBytes: 520000,
+    maxDimension: 720,
+    minDimension: 360,
+    quality: 0.58,
+    minQuality: 0.36
   });
+  const requestOutfit = await prepareOutfitForSeeOnMe(outfit);
+  const requestBody = {
+    imageDataUrl: requestImageDataUrl,
+    outfit: requestOutfit,
+    appearanceProfile: sanitizeAppearanceProfileForSeeOnMe(appearanceProfile),
+    preferences,
+    language,
+    continueAnyway
+  };
+  const requestBodyBytes = getPayloadBytes(requestBody);
   addMonitoringBreadcrumb('ai', 'see-on-me:start', {
     accessTier: accessStatus.tier,
     imageBytes: requestImageDataUrl.length,
-    originalImageBytes: imageDataUrl.length
+    originalImageBytes: imageDataUrl.length,
+    requestBodyBytes
   });
   saveSeeOnMeDebug({
     status: 'started',
     imageBytes: requestImageDataUrl.length,
-    originalImageBytes: imageDataUrl.length
+    originalImageBytes: imageDataUrl.length,
+    requestBodyBytes
   });
 
   try {
@@ -81,14 +143,7 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
       method: 'POST',
       headers: seeOnMeHeaders(),
       signal: controller.signal,
-      body: JSON.stringify({
-        imageDataUrl: requestImageDataUrl,
-        outfit,
-        appearanceProfile: sanitizeAppearanceProfileForSeeOnMe(appearanceProfile),
-        preferences,
-        language,
-        continueAnyway
-      })
+      body: JSON.stringify(requestBody)
     }, 'see-on-me:generate');
 
     handleResponse(response, data, 'see-on-me-generate', { url, responseText });
@@ -105,7 +160,10 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
       message: error.message,
       messageKey: error.payload?.messageKey,
       safeCode: error.payload?.safeCode,
-      category: error.payload?.category
+      category: error.payload?.category,
+      imageBytes: requestImageDataUrl.length,
+      originalImageBytes: imageDataUrl.length,
+      requestBodyBytes
     });
     if (error.payload || error.status) throw error;
     throw getFriendlyError(error, 'seeOnMe.generationFailed');

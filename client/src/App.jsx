@@ -1710,7 +1710,9 @@ function DiagnosticsCard() {
     ['Picker message', pickerDebug?.message || '-'],
     ['See On Me', seeOnMeDebug ? `${seeOnMeDebug.status || '-'} / ${seeOnMeDebug.messageKey || seeOnMeDebug.message || '-'}` : '-'],
     ['See status', seeOnMeDebug?.httpStatus || '-'],
-    ['See code', seeOnMeDebug?.safeCode || seeOnMeDebug?.category || '-']
+    ['See code', seeOnMeDebug?.safeCode || seeOnMeDebug?.category || '-'],
+    ['See body bytes', seeOnMeDebug?.requestBodyBytes || '-'],
+    ['See image bytes', seeOnMeDebug?.imageBytes || '-']
   ];
 
   return (
