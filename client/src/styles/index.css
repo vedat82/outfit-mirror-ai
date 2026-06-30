@@ -838,14 +838,17 @@ html[data-form-focused="true"] .bottom-tabbar {
 
 .wardrobe-recommendation-rail {
   display: grid;
-  grid-auto-columns: minmax(235px, 82%);
+  grid-auto-columns: minmax(0, 100%);
   grid-auto-flow: column;
   gap: 12px;
   overflow-x: auto;
-  padding: 2px 16px 8px 0;
+  padding: 2px 0 8px;
   scroll-snap-type: x mandatory;
+  scroll-snap-stop: always;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
 }
 
 .wardrobe-recommendation-rail::-webkit-scrollbar {
@@ -854,6 +857,7 @@ html[data-form-focused="true"] .bottom-tabbar {
 
 .wardrobe-recommendation-rail > article {
   scroll-snap-align: start;
+  width: 100%;
 }
 
 .wardrobe-grid {

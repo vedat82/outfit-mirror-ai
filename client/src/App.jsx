@@ -517,7 +517,7 @@ function HomeHistoryPreview({ outfit }) {
   );
 }
 
-function HomeTab({ outfitHistory, reviewHistory = [], suggestion, accessStatus, onAnalyze, onSeeOnMe, onOpenPaywall, onSelectOutfit, onSelectReview, onFeedback, isFeedbackLoading, hasEnoughWardrobe, onAddClothes }) {
+function HomeTab({ outfitHistory, reviewHistory = [], suggestion, accessStatus, onAnalyze, onSuggest, onSeeOnMe, onOpenPaywall, onSelectOutfit, onSelectReview, onFeedback, isFeedbackLoading, hasEnoughWardrobe, onAddClothes, isSuggesting }) {
   const { t, optionLabel } = useI18n();
   const recentReviews = [
     ...reviewHistory.map((item) => ({ ...item, sortTime: item.createdAt || 0 })),
@@ -558,6 +558,9 @@ function HomeTab({ outfitHistory, reviewHistory = [], suggestion, accessStatus, 
               <p className="aura-kicker">{t('home2.selectedKicker')}</p>
               <h3>{t('home2.selectedTitle')}</h3>
             </div>
+            <button type="button" onClick={onSuggest} disabled={isSuggesting} className="aura-text-button disabled:cursor-not-allowed disabled:opacity-50">
+              {isSuggesting ? t('seeOnMe.generating') : t('seeOnMe.generateNewOutfit')} <ChevronRightIcon aria-hidden="true" />
+            </button>
           </div>
           <OutfitResultCard
             suggestion={suggestion}
@@ -782,7 +785,7 @@ function WardrobeImprovementPanel({ recommendations, visibleCount, onShowMore })
           <p className="mt-1 text-sm leading-6 text-teal-800">{t('wardrobe.improve.description')}</p>
         </div>
         {canShowMore ? (
-          <button type="button" onClick={onShowMore} className="shrink-0 rounded-xl border border-teal-200 bg-white px-3 py-2 text-sm font-semibold text-teal-900">
+          <button type="button" onClick={onShowMore} className="shrink-0 rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-900">
             {t('wardrobe.improve.more')}
           </button>
         ) : null}
@@ -974,7 +977,7 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
-  const [visibleRecommendationCount, setVisibleRecommendationCount] = useState(4);
+  const [visibleRecommendationCount, setVisibleRecommendationCount] = useState(12);
 
   const filteredClothes = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();
@@ -1171,7 +1174,7 @@ function SeeOnMeLoadingState() {
 
   useEffect(() => {
     const messageTimer = window.setInterval(() => {
-      setStepIndex((currentIndex) => (currentIndex + 1) % loadingMessages.length);
+      setStepIndex((currentIndex) => Math.min(currentIndex + 1, loadingMessages.length - 1));
     }, 3200);
     const elapsedTimer = window.setInterval(() => {
       setElapsedSeconds((currentSeconds) => currentSeconds + 1);
@@ -1258,7 +1261,16 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   const seeOnMeCameraInputRef = useRef(null);
   const isGenerating = state === 'generating';
   const isGeneratingRef = useRef(false);
+  const suggestionSignature = getOutfitSignature(suggestion);
   const canUploadMore = accessStatus.canUseUserPhotoUpload && appearanceProfile.photos.length < maxAppearancePhotos && !isGenerating;
+
+  useEffect(() => {
+    setPreview(null);
+    setState('idle');
+    setErrorMessage('');
+    setServiceError(null);
+    setValidationWarning(null);
+  }, [suggestionSignature]);
 
   function handleSelectPhoto(photo) {
     if (isGenerating) return;
@@ -1406,6 +1418,17 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     }
   }
 
+  async function handleGenerateNewOutfitFromSeeOnMe() {
+    if (isGenerating) return;
+
+    setPreview(null);
+    setState('idle');
+    setErrorMessage('');
+    setServiceError(null);
+    setValidationWarning(null);
+    await onGenerateNewOutfit?.();
+  }
+
   async function handleSaveLook() {
     if (!preview?.previewImageUrl || !suggestion) return;
 
@@ -1541,7 +1564,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
             <button type="button" onClick={handleGeneratePreview} disabled={isGenerating} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60">
               {t('seeOnMe.tryDifferent')}
             </button>
-            <button type="button" onClick={onGenerateNewOutfit} disabled={isGenerating} className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:bg-slate-400">
+            <button type="button" onClick={handleGenerateNewOutfitFromSeeOnMe} disabled={isGenerating} className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:bg-slate-400">
               {t('seeOnMe.generateNewOutfit')}
             </button>
           </div>
@@ -2542,11 +2565,13 @@ export default function App() {
               suggestion={suggestion}
               accessStatus={accessStatus}
               onOpenPaywall={openPaywall}
+              onSuggest={handleSuggest}
               onSeeOnMe={handleSeeOnMe}
               onSelectOutfit={handleSelectOutfitFromHistory}
               onSelectReview={handleSelectReviewFromHistory}
               onFeedback={handleOutfitFeedback}
               isFeedbackLoading={isSavingFeedback}
+              isSuggesting={isSuggesting}
               hasEnoughWardrobe={hasEnoughWardrobe}
               onAddClothes={() => setActivePage('wardrobe')}
               onAnalyze={() => {
