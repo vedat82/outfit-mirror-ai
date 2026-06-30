@@ -589,12 +589,12 @@ function HomeTab({ outfitHistory, reviewHistory = [], suggestion, accessStatus, 
             {recentReviews.map((outfit, index) => {
               const isReview = outfit.type === 'review';
               return (
-                <button type="button" className="aura-review-card" key={outfit.historyId || outfit.createdAt || index} onClick={() => (isReview ? onSelectReview(outfit) : onSelectOutfit(outfit))}>
+                <button type="button" className="aura-review-card" key={outfit.historyId || outfit.createdAt || index} onClick={() => (isReview ? onSelectReview(outfit) : onSelectOutfit(outfit, { openSeeOnMe: true }))}>
                   <HomeHistoryPreview outfit={outfit} />
                   <div>
                     <span className="aura-score">{isReview ? t('home2.reviewBadge', { score: outfit.score }) : t('home2.outfitBadge')}</span>
                     <p>{isReview ? t('home2.photoReviewVerdict') : t('home2.reviewVerdict')}</p>
-                    <small>{isReview ? t('home2.openReview') : optionLabel('occasions', outfit.occasion || 'daily')}</small>
+                    <small>{isReview ? t('home2.openReview') : t('home.seeOnMeCta')}</small>
                   </div>
                 </button>
               );
@@ -1247,7 +1247,7 @@ function SeeOnMeOutfitPreview({ suggestion }) {
   );
 }
 
-function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences, onSaveAppearance, onGenerateNewOutfit, onSavedLook }) {
+function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences, onSaveAppearance, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks }) {
   const { t, language } = useI18n();
   const [selectedPhotoId, setSelectedPhotoId] = useState(appearanceProfile.photos[0]?.id || '');
   const [selectedPhotoDataUrl, setSelectedPhotoDataUrl] = useState(appearanceProfile.photos[0]?.imageUrl || '');
@@ -1257,6 +1257,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   const [serviceError, setServiceError] = useState(null);
   const [validationWarning, setValidationWarning] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [savedLookId, setSavedLookId] = useState('');
   const seeOnMeLibraryInputRef = useRef(null);
   const seeOnMeCameraInputRef = useRef(null);
   const isGenerating = state === 'generating';
@@ -1270,6 +1271,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     setErrorMessage('');
     setServiceError(null);
     setValidationWarning(null);
+    setSavedLookId('');
   }, [suggestionSignature]);
 
   function handleSelectPhoto(photo) {
@@ -1280,6 +1282,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     setErrorMessage('');
     setServiceError(null);
     setValidationWarning(null);
+    setSavedLookId('');
   }
 
   function addSeeOnMePhoto(imageDataUrl) {
@@ -1297,6 +1300,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
       setErrorMessage('');
       setServiceError(null);
       setValidationWarning(null);
+      setSavedLookId('');
   }
 
   async function handlePhotoUpload(event) {
@@ -1350,6 +1354,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     setPreview(null);
     setErrorMessage('');
     setValidationWarning(null);
+    setSavedLookId('');
   }
 
   async function handleGeneratePreview(options = {}) {
@@ -1371,6 +1376,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     setErrorMessage('');
     setServiceError(null);
     setValidationWarning(null);
+    setSavedLookId('');
 
     try {
       const result = await generateSeeOnMePreview({
@@ -1382,6 +1388,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
         continueAnyway: Boolean(options.continueAnyway)
       });
       setPreview(result);
+      setErrorMessage(result.cached ? t('seeOnMe.cachedPreview') : '');
       setState(result.usedFallback || result.messageKey ? 'review' : 'ready');
     } catch (error) {
       const payloadMessageKey = error.payload?.messageKey;
@@ -1426,6 +1433,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     setErrorMessage('');
     setServiceError(null);
     setValidationWarning(null);
+    setSavedLookId('');
     await onGenerateNewOutfit?.();
   }
 
@@ -1442,7 +1450,8 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
         metadata: preview.metadata || {}
       });
       onSavedLook(savedLook);
-      setErrorMessage(t('seeOnMe.saved'));
+      setSavedLookId(String(savedLook.id || Date.now()));
+      setErrorMessage(t('seeOnMe.savedToProfile'));
     } catch {
       setErrorMessage(t('messages.actionFailed'));
     } finally {
@@ -1505,6 +1514,10 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
 
       <SeeOnMeOutfitPreview suggestion={suggestion} />
 
+      <button type="button" onClick={handleGenerateNewOutfitFromSeeOnMe} disabled={isGenerating} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
+        {t('seeOnMe.generateNewOutfit')}
+      </button>
+
       {isGenerating ? <SeeOnMeLoadingState /> : null}
 
       {errorMessage ? (
@@ -1557,24 +1570,23 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
               {t(preview.messageKey)}
             </p>
           ) : null}
-          <div className="grid gap-2 sm:grid-cols-3">
-            <button type="button" onClick={handleSaveLook} disabled={isSaving} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-900">
-              {isSaving ? t('buttons.adding') : t('seeOnMe.saveLook')}
-            </button>
-            <button type="button" onClick={handleGeneratePreview} disabled={isGenerating} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-60">
-              {t('seeOnMe.tryDifferent')}
-            </button>
-            <button type="button" onClick={handleGenerateNewOutfitFromSeeOnMe} disabled={isGenerating} className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white disabled:bg-slate-400">
-              {t('seeOnMe.generateNewOutfit')}
+          <div className="grid gap-2">
+            <button type="button" onClick={handleSaveLook} disabled={isSaving || Boolean(savedLookId)} className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-900 disabled:cursor-not-allowed disabled:opacity-70">
+              {isSaving ? t('buttons.adding') : savedLookId ? t('seeOnMe.savedShort') : t('seeOnMe.saveLook')}
             </button>
           </div>
+          {savedLookId ? (
+            <button type="button" onClick={onOpenSavedLooks} className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900">
+              {t('seeOnMe.openSavedLooks')}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>
   );
 }
 
-function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearanceProfile, preferences, onSaveAppearance, activeTool, onActiveToolChange, suggestion, onGenerateNewOutfit, onSavedLook, onAnalysisComplete }) {
+function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearanceProfile, preferences, onSaveAppearance, activeTool, onActiveToolChange, suggestion, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks, onAnalysisComplete }) {
   const { t } = useI18n();
   const locked = !accessStatus.hasFullAccess;
   const mirrorTools = [
@@ -1644,6 +1656,7 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
                 onSaveAppearance={onSaveAppearance}
                 onGenerateNewOutfit={onGenerateNewOutfit}
                 onSavedLook={onSavedLook}
+                onOpenSavedLooks={onOpenSavedLooks}
               />
               )}
             </section>
@@ -1813,7 +1826,7 @@ function LegacyProfileTab({ preferences, accessStatus, appearanceProfile, paymen
   );
 }
 
-function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatform, isPaymentLoading, paywallRequestId, likedOutfits, isLoadingLikedOutfits, savedLooks, isLoadingSavedLooks, outfitHistory, onStartPremium, onRestorePurchases, onCancelPremiumFlow, onSavePreferences, onSaveAppearance, onResetPremiumState }) {
+function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatform, isPaymentLoading, paywallRequestId, requestedSection, likedOutfits, isLoadingLikedOutfits, savedLooks, isLoadingSavedLooks, outfitHistory, onStartPremium, onRestorePurchases, onCancelPremiumFlow, onSavePreferences, onSaveAppearance, onResetPremiumState }) {
   const { t } = useI18n();
   const [activeSection, setActiveSection] = useState('');
   const [showPaywall, setShowPaywall] = useState(false);
@@ -1829,6 +1842,13 @@ function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatf
   useEffect(() => {
     if (accessStatus.isPremium && !isPaymentLoading) setShowPaywall(false);
   }, [accessStatus.isPremium, isPaymentLoading]);
+
+  useEffect(() => {
+    if (requestedSection?.section) {
+      setActiveSection(requestedSection.section);
+      setShowPaywall(false);
+    }
+  }, [requestedSection]);
 
   function handleSaveAppearanceAndPreferences(nextProfile) {
     const { styleGoal, ...nextAppearanceProfile } = nextProfile;
@@ -1981,6 +2001,7 @@ export default function App() {
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(() => getOnboardingCompleted());
   const [activePage, setActivePage] = useState('home');
   const [activeStudioTool, setActiveStudioTool] = useState('review');
+  const [profileSectionRequest, setProfileSectionRequest] = useState(null);
   const [paywallRequestId, setPaywallRequestId] = useState(0);
   const [likedOutfits, setLikedOutfits] = useState([]);
   const [savedLooks, setSavedLooks] = useState([]);
@@ -2122,10 +2143,19 @@ export default function App() {
     }
   }
 
-  function handleSelectOutfitFromHistory(outfit) {
+  function handleSelectOutfitFromHistory(outfit, options = {}) {
     setMessage('');
     setMessageTone('info');
     setSuggestion(outfit);
+    if (options.openSeeOnMe) {
+      if (accessStatus.hasFullAccess) {
+        setActiveStudioTool('see-on-me');
+        setActivePage('studio');
+      } else {
+        openPaywall();
+        setMessage('premium.availableInPremium');
+      }
+    }
   }
 
   function handleOutfitAnalysisComplete(analysis) {
@@ -2255,6 +2285,11 @@ export default function App() {
     setSavedLooks((current) => [savedLook, ...current].slice(0, 24));
     setMessageTone('success');
     setMessage('seeOnMe.saved');
+  }
+
+  function openSavedLooks() {
+    setProfileSectionRequest({ section: 'saved', requestedAt: Date.now() });
+    setActivePage('profile');
   }
 
   function openPaywall() {
@@ -2604,6 +2639,7 @@ export default function App() {
               onSaveAppearance={handleSaveAppearanceProfile}
               onGenerateNewOutfit={handleSuggest}
               onSavedLook={handleSavedLook}
+              onOpenSavedLooks={openSavedLooks}
               onAnalysisComplete={handleOutfitAnalysisComplete}
             />
           ) : (
@@ -2614,6 +2650,7 @@ export default function App() {
               paymentPlatform={paymentPlatform}
               isPaymentLoading={isPaymentLoading}
               paywallRequestId={paywallRequestId}
+              requestedSection={profileSectionRequest}
               likedOutfits={likedOutfits}
               isLoadingLikedOutfits={isLoadingLikedOutfits}
               savedLooks={savedLooks}

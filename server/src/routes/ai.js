@@ -878,17 +878,29 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
     return res.status(403).json({ message: 'Available in Premium', messageKey: 'premium.availableInPremium' });
   }
 
-  if (!adminBypass && !usage.canUse) {
-    console.warn('[ai/see-on-me] daily limit rejection', { userId, accessTier, usage });
-    return res.status(429).json({ message: seeOnMeLimitReachedMessageKey, messageKey: seeOnMeLimitReachedMessageKey, usage });
-  }
-
   if (!imageDataUrl.startsWith('data:image/')) {
     return res.status(400).json({ message: 'A valid image data URL is required.' });
   }
 
   if (!outfit?.top || !outfit?.bottom || !outfit?.shoes) {
     return res.status(400).json({ message: 'A generated outfit is required.' });
+  }
+
+  const cacheKey = getGenerationCacheKey({ userId, imageDataUrl, outfit, appearanceProfile, preferences, language });
+  const cachedPreview = !adminBypass ? getCachedPreview(cacheKey) : null;
+
+  if (cachedPreview) {
+    console.log('[ai/see-on-me] cache hit', { userId, accessTier });
+    return res.json({
+      ...cachedPreview,
+      usage,
+      cached: true
+    });
+  }
+
+  if (!adminBypass && !usage.canUse) {
+    console.warn('[ai/see-on-me] daily limit rejection', { userId, accessTier, usage });
+    return res.status(429).json({ message: seeOnMeLimitReachedMessageKey, messageKey: seeOnMeLimitReachedMessageKey, usage });
   }
 
   const budgetState = getBudgetState();
@@ -925,18 +937,6 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
       messageKey: seeOnMeAlreadyRunningMessageKey,
       code: 'SEE_ON_ME_ALREADY_RUNNING',
       category: 'concurrent'
-    });
-  }
-
-  const cacheKey = getGenerationCacheKey({ userId, imageDataUrl, outfit, appearanceProfile, preferences, language });
-  const cachedPreview = !adminBypass ? getCachedPreview(cacheKey) : null;
-
-  if (cachedPreview) {
-    console.log('[ai/see-on-me] cache hit', { userId, accessTier });
-    return res.json({
-      ...cachedPreview,
-      usage,
-      cached: true
     });
   }
 

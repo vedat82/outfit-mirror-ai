@@ -555,9 +555,12 @@
     "previewAlt": "Üzerimde Gör önizlemesi",
     "aiGeneratedNote": "AI-generated preview",
     "saveLook": "Görünümü kaydet ❤️",
-    "tryDifferent": "Farklı önizle",
     "generateNewOutfit": "Yeni kombin üret",
-    "saved": "Görünüm kaydedildi."
+    "saved": "Görünüm kaydedildi.",
+    "savedShort": "Kaydedildi",
+    "savedToProfile": "Görünüm kaydedildi. Profil > Kaydedilen Görünümler bölümünde görebilirsin.",
+    "openSavedLooks": "Kaydedilen Görünümleri Aç",
+    "cachedPreview": "Bu kombin için hazır önizleme kullanıldı."
   },
   "language": {
     "label": "Dil",

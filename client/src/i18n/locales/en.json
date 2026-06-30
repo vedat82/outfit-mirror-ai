@@ -555,9 +555,12 @@
     "previewAlt": "See On Me preview",
     "aiGeneratedNote": "AI-generated preview",
     "saveLook": "Save Look ❤️",
-    "tryDifferent": "Try Different Preview",
     "generateNewOutfit": "Generate New Outfit",
-    "saved": "Look saved."
+    "saved": "Look saved.",
+    "savedShort": "Saved",
+    "savedToProfile": "Look saved. You can find it under Profile > Saved Looks.",
+    "openSavedLooks": "Open Saved Looks",
+    "cachedPreview": "A ready preview was used for this outfit."
   },
   "language": {
     "label": "Language",
