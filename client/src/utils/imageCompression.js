@@ -42,6 +42,36 @@ export async function compressImageDataUrl(dataUrl, options = {}) {
   return canvas.toDataURL(mimeType, quality);
 }
 
+export async function compressImageDataUrlToBudget(dataUrl, options = {}) {
+  const {
+    maxBytes = 850000,
+    maxDimension = 860,
+    minDimension = 420,
+    quality = 0.64,
+    minQuality = 0.42,
+    mimeType = 'image/jpeg'
+  } = options;
+  let currentDimension = maxDimension;
+  let currentQuality = quality;
+  let compressedDataUrl = await compressImageDataUrl(dataUrl, {
+    maxDimension: currentDimension,
+    quality: currentQuality,
+    mimeType
+  });
+
+  while (compressedDataUrl.length > maxBytes && (currentDimension > minDimension || currentQuality > minQuality)) {
+    currentDimension = Math.max(minDimension, Math.round(currentDimension * 0.82));
+    currentQuality = Math.max(minQuality, Number((currentQuality - 0.08).toFixed(2)));
+    compressedDataUrl = await compressImageDataUrl(dataUrl, {
+      maxDimension: currentDimension,
+      quality: currentQuality,
+      mimeType
+    });
+  }
+
+  return compressedDataUrl;
+}
+
 export async function compressImageFile(file, options = {}) {
   const {
     maxDimension = 1280,

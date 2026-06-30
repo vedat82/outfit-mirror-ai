@@ -1292,7 +1292,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     if (!file || !canUploadMore) return;
 
     try {
-      const imageDataUrl = await compressImageFile(file, { maxDimension: 960, quality: 0.68 });
+      const imageDataUrl = await compressImageFile(file, { maxDimension: 820, quality: 0.6 });
       addSeeOnMePhoto(imageDataUrl);
     } catch {
       setErrorMessage(t('seeOnMe.uploadFailed'));
@@ -1307,8 +1307,8 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     try {
       const imageDataUrl = await pickNativeImageDataUrl({
         source,
-        maxDimension: 960,
-        quality: 0.68
+        maxDimension: 820,
+        quality: 0.6
       });
 
       if (imageDataUrl) {

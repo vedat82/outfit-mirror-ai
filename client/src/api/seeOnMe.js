@@ -3,6 +3,7 @@ import { addMonitoringBreadcrumb, captureAppError } from '../monitoring/sentry.j
 import { detectPaymentPlatform } from '../utils/platform.js';
 import { sanitizeAppearanceProfileForSeeOnMe } from '../utils/seeOnMePayload.js';
 import { fetchJson } from './http.js';
+import { compressImageDataUrlToBudget } from '../utils/imageCompression.js';
 
 const seeOnMeDebugStorageKey = 'outfitMirrorSeeOnMeDebug';
 
@@ -59,9 +60,20 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
   const accessStatus = getAccessStatus();
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 90000);
+  const requestImageDataUrl = await compressImageDataUrlToBudget(imageDataUrl, {
+    maxBytes: 850000,
+    maxDimension: 860,
+    quality: 0.64
+  });
   addMonitoringBreadcrumb('ai', 'see-on-me:start', {
     accessTier: accessStatus.tier,
-    imageBytes: imageDataUrl.length
+    imageBytes: requestImageDataUrl.length,
+    originalImageBytes: imageDataUrl.length
+  });
+  saveSeeOnMeDebug({
+    status: 'started',
+    imageBytes: requestImageDataUrl.length,
+    originalImageBytes: imageDataUrl.length
   });
 
   try {
@@ -70,7 +82,7 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
       headers: seeOnMeHeaders(),
       signal: controller.signal,
       body: JSON.stringify({
-        imageDataUrl,
+        imageDataUrl: requestImageDataUrl,
         outfit,
         appearanceProfile: sanitizeAppearanceProfileForSeeOnMe(appearanceProfile),
         preferences,
