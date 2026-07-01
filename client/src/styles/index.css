@@ -837,9 +837,7 @@ html[data-form-focused="true"] .bottom-tabbar {
 }
 
 .wardrobe-recommendation-rail {
-  display: grid;
-  grid-auto-columns: minmax(0, 100%);
-  grid-auto-flow: column;
+  display: flex;
   gap: 12px;
   overflow-x: auto;
   padding: 2px 0 8px;
@@ -856,6 +854,9 @@ html[data-form-focused="true"] .bottom-tabbar {
 }
 
 .wardrobe-recommendation-rail > article {
+  flex: 0 0 100%;
+  min-width: 100%;
+  max-width: 100%;
   scroll-snap-align: start;
   width: 100%;
 }

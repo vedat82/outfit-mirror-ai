@@ -24,7 +24,7 @@ import PaymentResultPage from './components/PaymentResultPage.jsx';
 import { getPaymentStatus, resetPaymentStatus, verifyApplePurchase } from './api/payment.js';
 import { getActiveAppleSubscription, isAppleAlreadyPurchased, isApplePurchaseCancelled, purchaseAppleSubscription, restoreAppleSubscriptions } from './api/applePurchases.js';
 import { canUseAppleSubscriptions, detectPaymentPlatform, isNativeApp } from './utils/platform.js';
-import { compressImageDataUrl, compressImageFile } from './utils/imageCompression.js';
+import { compressImageDataUrlToBudget, compressImageFile } from './utils/imageCompression.js';
 import { getNativeImagePickerDebug, imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from './utils/nativeImagePicker.js';
 import { canUsePaymentTestHelpers, isCurrentPaymentRequest, isXcodeStoreKitEnvironment, withPaymentTimeout } from './utils/paymentFlow.js';
 import { addMonitoringBreadcrumb, captureAppError } from './monitoring/sentry.js';
@@ -95,6 +95,17 @@ function getOutfitSignature(outfit) {
   return [outfit.top, outfit.bottom, outfit.shoes, outfit.jacket]
     .map((item) => (item ? `${item.type}:${item.color}` : 'none'))
     .join('|');
+}
+
+function stripOutfitImages(outfit = {}) {
+  const nextOutfit = { ...outfit };
+  for (const key of ['top', 'bottom', 'shoes', 'jacket']) {
+    if (nextOutfit[key]) {
+      const { imageUrl, ...itemWithoutImage } = nextOutfit[key];
+      nextOutfit[key] = itemWithoutImage;
+    }
+  }
+  return nextOutfit;
 }
 
 function hasEnoughWardrobeForOutfit(clothes) {
@@ -742,6 +753,27 @@ function buildWardrobeRecommendations({ clothes, preferences, appearanceProfile,
   if (preferredColors.includes('blue') && !hasItem(clothes, (item) => item.color === 'blue' || item.color === 'navy')) {
     addRecommendation('navyBasic', 'preferredColors', 'optional', 42);
   }
+
+  const fallbackRecommendations = [
+    ['whiteSneakers', 'neutralShoes', 'high', 40],
+    ['darkJeans', 'darkBottoms', 'high', 39],
+    ['neutralOvershirt', 'smartCasual', 'medium', 38],
+    ['smartCasualPants', 'workLooks', 'medium', 37],
+    ['formalShoes', 'formalOccasions', 'medium', 36],
+    ['whiteShirt', 'workLooks', 'medium', 35],
+    ['navyOvershirt', 'smartCasual', 'medium', 34],
+    ['beigeChinos', 'smartCasual', 'optional', 33],
+    ['linenShirt', 'warmWeather', 'optional', 32],
+    ['structuredKnit', 'layering', 'optional', 31],
+    ['darkSneakers', 'rainReady', 'optional', 30],
+    ['lightTshirt', 'warmWeather', 'optional', 29]
+  ];
+
+  fallbackRecommendations.forEach(([itemKey, reasonKey, priority, score]) => {
+    if (recommendations.length < 8) {
+      addRecommendation(itemKey, reasonKey, priority, score);
+    }
+  });
 
   return recommendations.sort((a, b) => b.score - a.score);
 }
@@ -1444,9 +1476,21 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
 
     try {
       const savedLook = await saveSeeOnMeLook({
-        previewImageUrl: await compressImageDataUrl(preview.previewImageUrl, { maxDimension: 1200, quality: 0.74 }),
-        userPhotoImageUrl: await compressImageDataUrl(selectedPhotoDataUrl, { maxDimension: 900, quality: 0.7 }),
-        outfit: suggestion,
+        previewImageUrl: await compressImageDataUrlToBudget(preview.previewImageUrl, {
+          maxBytes: 520000,
+          maxDimension: 900,
+          minDimension: 520,
+          quality: 0.66,
+          minQuality: 0.42
+        }),
+        userPhotoImageUrl: await compressImageDataUrlToBudget(selectedPhotoDataUrl, {
+          maxBytes: 180000,
+          maxDimension: 520,
+          minDimension: 320,
+          quality: 0.58,
+          minQuality: 0.38
+        }),
+        outfit: stripOutfitImages(suggestion),
         metadata: preview.metadata || {}
       });
       onSavedLook(savedLook);
@@ -1689,31 +1733,43 @@ function LikedOutfitCard({ outfit }) {
   );
 }
 
-function SavedLookPreviewCard({ look }) {
+function SavedLookPreviewCard({ look, onSelect }) {
   const { t } = useI18n();
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <button type="button" onClick={() => onSelect?.(look)} className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition active:scale-[0.99]">
       <img src={look.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="h-56 w-full object-cover" loading="lazy" decoding="async" />
       <div className="p-3">
         <p className="text-sm font-semibold text-slate-950">{t('profile.savedSeeOnMeTitle')}</p>
         <p className="mt-1 text-xs text-slate-500">{look.createdAt ? new Date(look.createdAt).toLocaleDateString() : ''}</p>
       </div>
-    </article>
+    </button>
   );
 }
 
 function SavedLooksSection({ likedOutfits, isLoadingLikedOutfits, outfitHistory, savedLooks, isLoadingSavedLooks }) {
   const { t } = useI18n();
+  const [selectedLook, setSelectedLook] = useState(null);
 
   return (
     <SoftCard>
       <h3 className="text-base font-semibold text-slate-950">{t('profile.savedLooksTitle')}</h3>
+      {selectedLook ? (
+        <div className="mt-3 grid gap-3 rounded-2xl border border-teal-100 bg-teal-50 p-3">
+          <img src={selectedLook.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="max-h-[520px] w-full rounded-2xl bg-slate-950 object-contain" loading="lazy" decoding="async" />
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-teal-950">{t('profile.savedSeeOnMeTitle')}</p>
+            <button type="button" onClick={() => setSelectedLook(null)} className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-900">
+              {t('buttons.back')}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {isLoadingLikedOutfits || isLoadingSavedLooks ? (
         <p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">{t('likedOutfits.loading')}</p>
       ) : savedLooks.length ? (
         <div className="mt-3 grid max-h-96 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
-          {savedLooks.map((look) => <SavedLookPreviewCard key={look.id} look={look} />)}
+          {savedLooks.map((look) => <SavedLookPreviewCard key={look.id} look={look} onSelect={setSelectedLook} />)}
         </div>
       ) : likedOutfits.length ? (
         <div className="mt-3 grid max-h-72 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
@@ -2593,7 +2649,7 @@ export default function App() {
         </header>
 
         <div className="app-content aura-content">
-          {activePage === 'home' ? (
+          <div className={activePage === 'home' ? 'contents' : 'hidden'} aria-hidden={activePage !== 'home'}>
             <HomeTab
               outfitHistory={outfitHistory}
               reviewHistory={reviewHistory}
@@ -2614,7 +2670,8 @@ export default function App() {
                 setActivePage('studio');
               }}
             />
-          ) : activePage === 'wardrobe' ? (
+          </div>
+          <div className={activePage === 'wardrobe' ? 'contents' : 'hidden'} aria-hidden={activePage !== 'wardrobe'}>
             <WardrobeTab
               clothes={clothes}
               isLoading={isLoadingClothes}
@@ -2625,7 +2682,8 @@ export default function App() {
               appearanceProfile={appearanceProfile}
               outfitHistory={outfitHistory}
             />
-          ) : activePage === 'studio' ? (
+          </div>
+          <div className={activePage === 'studio' ? 'contents' : 'hidden'} aria-hidden={activePage !== 'studio'}>
             <AiStudioTab
               accessStatus={accessStatus}
               onAdd={handleAdd}
@@ -2642,7 +2700,8 @@ export default function App() {
               onOpenSavedLooks={openSavedLooks}
               onAnalysisComplete={handleOutfitAnalysisComplete}
             />
-          ) : (
+          </div>
+          <div className={activePage === 'profile' ? 'contents' : 'hidden'} aria-hidden={activePage !== 'profile'}>
             <ProfileTab
               preferences={preferences}
               accessStatus={accessStatus}
@@ -2663,7 +2722,7 @@ export default function App() {
               onSaveAppearance={handleSaveAppearanceProfile}
               onResetPremiumState={handleResetPremiumState}
             />
-          )}
+          </div>
         </div>
 
         <nav className="bottom-tabbar aura-tabbar">
