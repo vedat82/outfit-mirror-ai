@@ -1,4 +1,5 @@
 import { addMonitoringBreadcrumb, captureAppError } from '../monitoring/sentry.js';
+import { getItemCropRect } from './itemCrop.js';
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -133,27 +134,25 @@ export async function optimizeAiImageFile(file, options = {}) {
   });
 }
 
-export async function createItemPreviewImages(dataUrl, count, options = {}) {
+export async function createItemPreviewImages(dataUrl, itemsOrCount, options = {}) {
   const {
     size = 720,
     quality = 0.72,
     mimeType = 'image/jpeg'
   } = options;
-  const itemCount = Math.max(1, Math.min(6, Number(count) || 1));
+  const items = Array.isArray(itemsOrCount)
+    ? itemsOrCount
+    : Array.from({ length: Math.max(1, Math.min(6, Number(itemsOrCount) || 1)) }, () => ({}));
+  const itemCount = Math.max(1, Math.min(6, items.length || 1));
 
   const image = await loadImage(dataUrl);
-  const columns = itemCount <= 2 ? itemCount : 2;
-  const rows = Math.ceil(itemCount / columns);
-  const cellWidth = image.width / columns;
-  const cellHeight = image.height / rows;
 
   return Array.from({ length: itemCount }, (_, index) => {
-    const column = index % columns;
-    const row = Math.floor(index / columns);
-    const sourceX = Math.round(column * cellWidth);
-    const sourceY = Math.round(row * cellHeight);
-    const sourceWidth = Math.round(cellWidth);
-    const sourceHeight = Math.round(cellHeight);
+    const cropRect = getItemCropRect(items[index]?.type, index, itemCount);
+    const sourceX = Math.round(cropRect.x * image.width);
+    const sourceY = Math.round(cropRect.y * image.height);
+    const sourceWidth = Math.max(1, Math.round(cropRect.width * image.width));
+    const sourceHeight = Math.max(1, Math.round(cropRect.height * image.height));
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
 

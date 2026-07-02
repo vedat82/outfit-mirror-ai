@@ -113,12 +113,13 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
       try {
         const analysis = await analyzeImage({ mode: 'clothing', imageDataUrl, language });
         const items = Array.isArray(analysis.items) ? analysis.items : [];
-        const itemPreviews = await createItemPreviewImages(imageDataUrl, Math.max(1, items.length), { size: 720, quality: 0.72 });
+        const itemPreviews = await createItemPreviewImages(imageDataUrl, items.length ? items : [initialForm], { size: 720, quality: 0.72 });
         setDetectedItems((items.length ? items : [initialForm]).map((item, index) => makeDetectedItem(item, index, itemPreviews[index] || imageDataUrl)));
         setAnalysisMessage(analysis.messageKey ? t(analysis.messageKey) : analysis.message || '');
         setAnalysisState(analysis.usedFallback || analysis.message ? 'review' : 'ready');
       } catch (error) {
-        setDetectedItems([{ ...initialForm, id: Date.now(), imageUrl }]);
+        const itemPreviews = await createItemPreviewImages(imageDataUrl, [initialForm], { size: 720, quality: 0.72 });
+        setDetectedItems([{ ...initialForm, id: Date.now(), imageUrl: itemPreviews[0] || imageDataUrl }]);
         setAnalysisError(error.message?.startsWith('messages.') ? t(error.message) : error.message?.includes('OPENAI_API_KEY') ? t('messages.aiConfigMissing') : t('addClothes.aiAnalysisFailed'));
         setAnalysisState('error');
       }
