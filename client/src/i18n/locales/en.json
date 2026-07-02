@@ -552,6 +552,7 @@
     "tryAgain": "Try Again",
     "tryLater": "Please try again later.",
     "uploadFailed": "Photo could not be uploaded. Please try again.",
+    "preparingPhoto": "Preparing photo for preview...",
     "previewAlt": "See On Me preview",
     "aiGeneratedNote": "AI-generated preview",
     "saveLook": "Save Look ❤️",

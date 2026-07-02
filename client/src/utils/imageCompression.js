@@ -113,6 +113,26 @@ export async function compressImageFile(file, options = {}) {
   }
 }
 
+export const aiImageOptimizationOptions = {
+  maxDimension: 1024,
+  quality: 0.8,
+  mimeType: 'image/jpeg'
+};
+
+export async function optimizeAiImageDataUrl(dataUrl, options = {}) {
+  return compressImageDataUrl(dataUrl, {
+    ...aiImageOptimizationOptions,
+    ...options
+  });
+}
+
+export async function optimizeAiImageFile(file, options = {}) {
+  return compressImageFile(file, {
+    ...aiImageOptimizationOptions,
+    ...options
+  });
+}
+
 export async function createItemPreviewImages(dataUrl, count, options = {}) {
   const {
     size = 720,

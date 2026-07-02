@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { analyzeImage } from '../api/ai.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
-import { compressImageFile } from '../utils/imageCompression.js';
+import { optimizeAiImageFile } from '../utils/imageCompression.js';
 import { imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from '../utils/nativeImagePicker.js';
 import { isNativeApp } from '../utils/platform.js';
 
@@ -59,7 +59,11 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
     const file = event.target.files?.[0];
     if (!file) return;
 
-    compressImageFile(file, { maxDimension: 1280, quality: 0.78 }).then(analyzeSelectedPhoto).catch(() => {
+    setAnalysis(null);
+    setAnalysisError('');
+    setAnalysisState('analyzing');
+
+    optimizeAiImageFile(file).then(analyzeSelectedPhoto).catch(() => {
       setAnalysisError(t('outfitAnalysis.aiAnalysisFailed'));
       setAnalysisState('error');
     }).finally(() => {
@@ -71,10 +75,14 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
     if (!canUseOutfitPhotoAnalysis) return;
 
     try {
+      setAnalysis(null);
+      setAnalysisError('');
+      setAnalysisState('analyzing');
+
       const imageDataUrl = await pickNativeImageDataUrl({
         source,
-        maxDimension: 1280,
-        quality: 0.78
+        maxDimension: 1024,
+        quality: 0.8
       });
 
       if (imageDataUrl) {
@@ -82,7 +90,10 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
         return;
       }
     } catch (error) {
-      if (isNativeImagePickerCancel(error)) return;
+      if (isNativeImagePickerCancel(error)) {
+        setAnalysisState(analysis ? 'ready' : 'idle');
+        return;
+      }
       setAnalysisError(t('outfitAnalysis.aiAnalysisFailed'));
       setAnalysisState('error');
       if (isNativeApp()) return;
@@ -127,6 +138,10 @@ export default function OutfitPhotoAnalysis({ clothes, accessStatus, appearanceP
                 {analysisError || t('outfitAnalysis.aiAnalysisFailed')}
               </div>
             ) : null}
+          </div>
+        ) : analysisState === 'analyzing' ? (
+          <div className="mt-4 rounded-md border border-teal-100 bg-white p-4 text-sm font-semibold text-teal-800">
+            {t('outfitAnalysis.analyzing')}
           </div>
         ) : (
           <div className="mt-4 rounded-md border border-dashed border-slate-300 bg-white p-6 text-center">

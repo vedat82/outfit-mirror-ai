@@ -109,11 +109,11 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 90000);
   const requestImageDataUrl = await compressImageDataUrlToBudget(imageDataUrl, {
-    maxBytes: 520000,
-    maxDimension: 720,
-    minDimension: 360,
-    quality: 0.58,
-    minQuality: 0.36
+    maxBytes: 900000,
+    maxDimension: 1024,
+    minDimension: 640,
+    quality: 0.8,
+    minQuality: 0.58
   });
   const requestOutfit = await prepareOutfitForSeeOnMe(outfit);
   const requestBody = {

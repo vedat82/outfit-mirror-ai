@@ -24,7 +24,7 @@ import PaymentResultPage from './components/PaymentResultPage.jsx';
 import { getPaymentStatus, resetPaymentStatus, verifyApplePurchase } from './api/payment.js';
 import { getActiveAppleSubscription, isAppleAlreadyPurchased, isApplePurchaseCancelled, purchaseAppleSubscription, restoreAppleSubscriptions } from './api/applePurchases.js';
 import { canUseAppleSubscriptions, detectPaymentPlatform, isNativeApp } from './utils/platform.js';
-import { compressImageDataUrlToBudget, compressImageFile } from './utils/imageCompression.js';
+import { compressImageDataUrlToBudget, optimizeAiImageFile } from './utils/imageCompression.js';
 import { getNativeImagePickerDebug, imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from './utils/nativeImagePicker.js';
 import { canUsePaymentTestHelpers, isCurrentPaymentRequest, isXcodeStoreKitEnvironment, withPaymentTimeout } from './utils/paymentFlow.js';
 import { addMonitoringBreadcrumb, captureAppError } from './monitoring/sentry.js';
@@ -1289,13 +1289,14 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   const [serviceError, setServiceError] = useState(null);
   const [validationWarning, setValidationWarning] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [savedLookId, setSavedLookId] = useState('');
   const seeOnMeLibraryInputRef = useRef(null);
   const seeOnMeCameraInputRef = useRef(null);
   const isGenerating = state === 'generating';
   const isGeneratingRef = useRef(false);
   const suggestionSignature = getOutfitSignature(suggestion);
-  const canUploadMore = accessStatus.canUseUserPhotoUpload && appearanceProfile.photos.length < maxAppearancePhotos && !isGenerating;
+  const canUploadMore = accessStatus.canUseUserPhotoUpload && appearanceProfile.photos.length < maxAppearancePhotos && !isGenerating && !isPreparingPhoto;
 
   useEffect(() => {
     setPreview(null);
@@ -1339,12 +1340,18 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     const file = event.target.files?.[0];
     if (!file || !canUploadMore) return;
 
+    setIsPreparingPhoto(true);
+    setErrorMessage('');
+    setServiceError(null);
+    setValidationWarning(null);
+
     try {
-      const imageDataUrl = await compressImageFile(file, { maxDimension: 820, quality: 0.6 });
+      const imageDataUrl = await optimizeAiImageFile(file);
       addSeeOnMePhoto(imageDataUrl);
     } catch {
       setErrorMessage(t('seeOnMe.uploadFailed'));
     } finally {
+      setIsPreparingPhoto(false);
       event.target.value = '';
     }
   }
@@ -1353,10 +1360,15 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     if (!canUploadMore) return;
 
     try {
+      setIsPreparingPhoto(true);
+      setErrorMessage('');
+      setServiceError(null);
+      setValidationWarning(null);
+
       const imageDataUrl = await pickNativeImageDataUrl({
         source,
-        maxDimension: 820,
-        quality: 0.6
+        maxDimension: 1024,
+        quality: 0.8
       });
 
       if (imageDataUrl) {
@@ -1367,6 +1379,8 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
       if (isNativeImagePickerCancel(error)) return;
       setErrorMessage(t('seeOnMe.uploadFailed'));
       if (isNativeApp()) return;
+    } finally {
+      setIsPreparingPhoto(false);
     }
 
     fallbackInputRef.current?.click();
@@ -1558,6 +1572,12 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
 
       <SeeOnMeOutfitPreview suggestion={suggestion} />
 
+      {isPreparingPhoto ? (
+        <div className="rounded-2xl border border-teal-100 bg-teal-50 p-3 text-sm font-semibold text-teal-900">
+          {t('seeOnMe.preparingPhoto')}
+        </div>
+      ) : null}
+
       <button type="button" onClick={handleGenerateNewOutfitFromSeeOnMe} disabled={isGenerating} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
         {t('seeOnMe.generateNewOutfit')}
       </button>
@@ -1598,7 +1618,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
       ) : null}
 
       {!preview && !validationWarning && !serviceError && !isGenerating ? (
-        <button type="button" onClick={handleGeneratePreview} disabled={state === 'generating' || !selectedPhotoDataUrl} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:bg-slate-400">
+        <button type="button" onClick={handleGeneratePreview} disabled={state === 'generating' || !selectedPhotoDataUrl || isPreparingPhoto} className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:bg-slate-400">
           {state === 'generating' ? t('seeOnMe.generating') : t('seeOnMe.generate')}
         </button>
       ) : null}

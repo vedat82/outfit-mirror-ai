@@ -1,6 +1,6 @@
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { isNativeApp } from './platform.js';
-import { compressImageDataUrl, compressImageFile } from './imageCompression.js';
+import { compressImageFile, optimizeAiImageDataUrl } from './imageCompression.js';
 
 const debugStorageKey = 'outfitMirrorNativePickerDebug';
 
@@ -80,7 +80,7 @@ export async function pickNativeImageDataUrl({ source = imageSources.photos, max
     throw new Error('messages.actionFailed');
   }
 
-  const compressedDataUrl = await compressImageDataUrl(photo.dataUrl, { maxDimension, quality });
+  const compressedDataUrl = await optimizeAiImageDataUrl(photo.dataUrl, { maxDimension, quality });
   saveNativeImagePickerDebug({ source, status: 'success', bytes: compressedDataUrl.length });
   return compressedDataUrl;
 }
