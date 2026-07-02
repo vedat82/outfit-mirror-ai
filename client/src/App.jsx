@@ -31,6 +31,7 @@ import { addMonitoringBreadcrumb, captureAppError } from './monitoring/sentry.js
 import { getApiBaseUrl } from './api/http.js';
 import stylistHero from './assets/stylist-hero.jpg';
 import {
+  AdjustmentsHorizontalIcon,
   ArrowPathIcon,
   CameraIcon,
   ChevronRightIcon,
@@ -64,6 +65,8 @@ const wardrobeSearchTypes = ['tshirt', 'shirt', 'long sleeve', 'jacket', 'pants'
 const wardrobeSearchColors = ['black', 'white', 'gray', 'blue', 'navy', 'beige', 'brown', 'red', 'green', 'pink', 'cream'];
 const wardrobeSearchSeasons = ['all', 'spring', 'summer', 'fall', 'winter'];
 const wardrobeSearchStyles = ['casual', 'formal', 'sporty', 'classic'];
+const wardrobeSheetSeasons = ['all', 'spring', 'summer', 'fall', 'winter'];
+const wardrobeSheetColors = ['all', 'black', 'white', 'gray', 'blue', 'navy', 'beige', 'brown', 'green'];
 const neutralColors = new Set(['black', 'white', 'gray', 'navy', 'beige', 'cream']);
 const darkColors = new Set(['black', 'navy', 'brown', 'gray']);
 const lightColors = new Set(['white', 'beige', 'cream']);
@@ -1005,7 +1008,10 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
   const { t, optionLabel } = useI18n();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('all');
+  const [seasonFilter, setSeasonFilter] = useState('all');
+  const [colorFilter, setColorFilter] = useState('all');
   const [showSearch, setShowSearch] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
@@ -1022,9 +1028,11 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
         optionLabel('types', item.type),
         optionLabel('colors', item.color)
       ].filter(Boolean).join(' ').toLowerCase();
-      return matchesWardrobeFilter(item, filter) && (!cleanQuery || searchable.includes(cleanQuery));
+      const matchesSeason = seasonFilter === 'all' || item.season === seasonFilter;
+      const matchesColor = colorFilter === 'all' || item.color === colorFilter;
+      return matchesWardrobeFilter(item, filter) && matchesSeason && matchesColor && (!cleanQuery || searchable.includes(cleanQuery));
     });
-  }, [clothes, filter, optionLabel, query]);
+  }, [clothes, colorFilter, filter, optionLabel, query, seasonFilter]);
 
   const wardrobeRecommendations = useMemo(() => buildWardrobeRecommendations({
     clothes,
@@ -1032,6 +1040,7 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
     appearanceProfile,
     outfitHistory
   }), [appearanceProfile, clothes, outfitHistory, preferences]);
+  const filterOptionLabel = (group, value) => value === 'all' ? t('wardrobe.filters.all') : optionLabel(group, value);
 
   async function handleAddAndClose(payload) {
     await onAdd(payload);
@@ -1067,11 +1076,17 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
         <div>
           <p className="aura-kicker">{t('wardrobe2.kicker')}</p>
           <h2>{t('wardrobe.title')}</h2>
+          <p>{t('wardrobe.description')}</p>
           <span>{t('wardrobe2.itemCount', { count: clothes.length })}</span>
         </div>
-        <button type="button" className="aura-icon-button" onClick={() => setShowSearch((value) => !value)} aria-label={t('wardrobe.searchPlaceholder')}>
-          <MagnifyingGlassIcon aria-hidden="true" />
-        </button>
+        <div className="wardrobe-header-actions">
+          <button type="button" className="aura-icon-button" onClick={() => setShowSearch((value) => !value)} aria-label={t('wardrobe.searchPlaceholder')}>
+            <MagnifyingGlassIcon aria-hidden="true" />
+          </button>
+          <button type="button" className="aura-icon-button" onClick={() => setShowFilterSheet(true)} aria-label={t('wardrobe.filters.title')}>
+            <AdjustmentsHorizontalIcon aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {showSearch ? (
@@ -1155,6 +1170,53 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
               <ChevronRightIcon aria-hidden="true" />
             </button>
             <button type="button" className="aura-sheet-cancel" onClick={() => setShowAddSheet(false)}>{t('buttons.cancel')}</button>
+          </section>
+        </div>
+      ) : null}
+
+      {showFilterSheet ? (
+        <div className="aura-sheet-backdrop" role="presentation" onClick={() => setShowFilterSheet(false)}>
+          <section className="aura-sheet wardrobe-filter-sheet" role="dialog" aria-modal="true" aria-labelledby="wardrobe-filter-title" onClick={(event) => event.stopPropagation()}>
+            <span className="aura-sheet-handle" />
+            <h3 id="wardrobe-filter-title">{t('wardrobe.filters.title')}</h3>
+            <div className="wardrobe-filter-group">
+              <p>{t('wardrobe.filters.category')}</p>
+              <div>
+                {wardrobeFilters.map((item) => (
+                  <button key={item} type="button" onClick={() => setFilter(item)} className={filter === item ? 'is-active' : ''}>
+                    {t(`wardrobe.filters.${item}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="wardrobe-filter-group">
+              <p>{t('wardrobe.filters.season')}</p>
+              <div>
+                {wardrobeSheetSeasons.map((item) => (
+                  <button key={item} type="button" onClick={() => setSeasonFilter(item)} className={seasonFilter === item ? 'is-active' : ''}>
+                    {filterOptionLabel('seasons', item)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="wardrobe-filter-group">
+              <p>{t('wardrobe.filters.color')}</p>
+              <div>
+                {wardrobeSheetColors.map((item) => (
+                  <button key={item} type="button" onClick={() => setColorFilter(item)} className={colorFilter === item ? 'is-active' : ''}>
+                    {filterOptionLabel('colors', item)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="wardrobe-filter-actions">
+              <button type="button" onClick={() => {
+                setFilter('all');
+                setSeasonFilter('all');
+                setColorFilter('all');
+              }}>{t('wardrobe.filters.clear')}</button>
+              <button type="button" onClick={() => setShowFilterSheet(false)}>{t('buttons.done')}</button>
+            </div>
           </section>
         </div>
       ) : null}
@@ -1663,6 +1725,7 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
       <div className="mirror-header">
         <p className="aura-kicker">{t('mirror.kicker')}</p>
         <h2>{t('mirror.title')}</h2>
+        <p>{t('mirror.description')}</p>
       </div>
       <div className="mirror-segments" role="tablist" aria-label={t('mirror.title')}>
         {mirrorTools.map((tool) => (
@@ -1753,15 +1816,40 @@ function LikedOutfitCard({ outfit }) {
   );
 }
 
-function SavedLookPreviewCard({ look, onSelect }) {
-  const { t } = useI18n();
+function SavedLookPiece({ item, labelKey }) {
+  const { t, optionLabel } = useI18n();
+  const label = item ? `${optionLabel('colors', item.color)} ${optionLabel('types', item.type)}`.trim() : t('profile.savedLooksMissingItem');
 
   return (
-    <button type="button" onClick={() => onSelect?.(look)} className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-left shadow-sm transition active:scale-[0.99]">
+    <span className="saved-look-piece">
+      {item?.imageUrl ? (
+        <img src={item.imageUrl} alt={label} loading="lazy" decoding="async" />
+      ) : (
+        <PhotoIcon aria-hidden="true" />
+      )}
+      <span>
+        <small>{t(labelKey)}</small>
+        <strong>{label}</strong>
+      </span>
+    </span>
+  );
+}
+
+function SavedLookPreviewCard({ look, onSelect }) {
+  const { t } = useI18n();
+  const outfit = look.outfit || {};
+
+  return (
+    <button type="button" onClick={() => onSelect?.(look)} className="saved-look-card">
       <img src={look.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="h-56 w-full object-cover" loading="lazy" decoding="async" />
       <div className="p-3">
         <p className="text-sm font-semibold text-slate-950">{t('profile.savedSeeOnMeTitle')}</p>
         <p className="mt-1 text-xs text-slate-500">{look.createdAt ? new Date(look.createdAt).toLocaleDateString() : ''}</p>
+        <div className="saved-look-pieces">
+          <SavedLookPiece item={outfit.top} labelKey="profile.savedLooksTop" />
+          <SavedLookPiece item={outfit.bottom} labelKey="profile.savedLooksBottom" />
+          <SavedLookPiece item={outfit.shoes} labelKey="profile.savedLooksShoes" />
+        </div>
       </div>
     </button>
   );
@@ -1800,7 +1888,11 @@ function SavedLooksSection({ likedOutfits, isLoadingLikedOutfits, outfitHistory,
           {outfitHistory.slice(0, 4).map((item) => <OutfitResultCard key={item.historyId} suggestion={item} isFeedbackLoading={false} hasEnoughWardrobe />)}
         </div>
       ) : (
-        <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">{t('profile.savedLooksEmpty')}</p>
+        <div className="saved-look-empty">
+          <HeartIcon aria-hidden="true" />
+          <strong>{t('profile.savedLooksEmptyTitle')}</strong>
+          <p>{t('profile.savedLooksEmpty')}</p>
+        </div>
       )}
     </SoftCard>
   );
@@ -1959,6 +2051,7 @@ function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatf
       <div className="profile-title">
         <p className="aura-kicker">{t('profile2.kicker')}</p>
         <h2>{t('profile.title')}</h2>
+        <p>{t('profile.description')}</p>
       </div>
 
       {!isDetailMode ? (

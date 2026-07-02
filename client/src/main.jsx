@@ -7,13 +7,18 @@ import './styles/index.css';
 
 initFrontendMonitoring();
 
-function AppErrorFallback() {
+function AppErrorFallback({ error }) {
+  const isDevelopment = import.meta.env.DEV;
+
   return (
     <main className="grid min-h-dvh place-items-center bg-slate-100 p-6 text-slate-950">
       <section className="w-full max-w-sm rounded-2xl border border-rose-200 bg-white p-5 shadow-sm">
         <p className="text-sm font-semibold text-rose-700">Bir sorun oluştu</p>
         <h1 className="mt-2 text-xl font-bold">Uygulama bu ekranı yükleyemedi.</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">Lütfen sayfayı yenileyip tekrar dene.</p>
+        {isDevelopment && error?.message ? (
+          <pre className="mt-3 max-h-32 overflow-auto rounded-xl bg-rose-50 p-3 text-xs text-rose-900">{error.message}</pre>
+        ) : null}
         <button
           type="button"
           onClick={() => window.location.reload()}
@@ -28,7 +33,7 @@ function AppErrorFallback() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <SentryErrorBoundary fallback={<AppErrorFallback />}>
+    <SentryErrorBoundary fallback={({ error }) => <AppErrorFallback error={error} />}>
       <I18nProvider>
         <App />
       </I18nProvider>

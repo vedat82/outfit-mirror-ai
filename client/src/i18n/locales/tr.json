@@ -47,7 +47,8 @@
     "startTrial": "Premium'u Ücretsiz Dene (3 gün)",
     "skip": "Atla",
     "back": "Geri",
-    "next": "Devam"
+    "next": "Devam",
+    "done": "Tamam"
   },
   "onboarding": {
     "eyebrow": "HIZLI BAŞLANGIÇ",
@@ -77,7 +78,7 @@
     "heroAlt": "Charcoal takım elbiseli model",
     "kicker": "OUTFIT MIRROR AI",
     "title": "Kişisel AI stilistin",
-    "description": "Kombinini göster, net geri bildirim al ve daha iyi halini üzerinde gör.",
+    "description": "Bugün ne giymek istediğine birlikte karar verelim.",
     "analyze": "Kombinimi Analiz Et",
     "seeOnMe": "Üzerimde Gör",
     "premium": "Premium",
@@ -100,7 +101,7 @@
   },
   "wardrobe": {
     "title": "Gardırop",
-    "description": "Kıyafetlerini ara, filtrele ve düzenli bir grid içinde yönet.",
+    "description": "Dolabını analiz ederek eksik parçaları bulabilirim.",
     "searchPlaceholder": "Renk, tür, sezon veya stil ara",
     "addAction": "Kıyafet ekle",
     "emptyTitle": "Uygun parça yok",
@@ -111,7 +112,12 @@
       "bottoms": "Altlar",
       "shoes": "Ayakkabılar",
       "jackets": "Ceketler",
-      "withPhotos": "Sadece fotoğraflılar"
+      "withPhotos": "Sadece fotoğraflılar",
+      "title": "Filtrele",
+      "category": "Kategori",
+      "season": "Sezon",
+      "color": "Renk",
+      "clear": "Temizle"
     },
     "improve": {
       "action": "Gardırobumu iyileştir",
@@ -169,6 +175,7 @@
   "mirror": {
     "kicker": "FOTOĞRAF TABANLI STİL",
     "title": "Mirror",
+    "description": "Sana en çok yakışan görünümü birlikte bulalım.",
     "review": "Kombin İncelemesi",
     "seeOnMe": "Üzerimde Gör",
     "photoAlt": "Tam boy kombin fotoğrafı örneği",
@@ -211,12 +218,17 @@
   },
   "profile": {
     "title": "Profil",
-    "description": "Dil, görünüm tercihleri, premium durum ve kaydedilen görünümler.",
+    "description": "Stil tercihlerini ve hesabını buradan yönet.",
     "accountTitle": "Hesap ve erişim",
     "appearancePreferencesTitle": "Görünüm ve Tercihler",
     "savedLooksTitle": "Kaydedilen Görünümler",
     "savedSeeOnMeTitle": "Üzerimde Gör önizlemesi",
-    "savedLooksEmpty": "Henüz kaydedilmiş veya yakın zamanda önerilmiş kombin yok."
+    "savedLooksEmptyTitle": "Henüz kayıtlı görünüm yok",
+    "savedLooksEmpty": "Beğendiğin bir önizlemeyi kaydettiğinde burada tekrar açabilirsin.",
+    "savedLooksTop": "Üst",
+    "savedLooksBottom": "Alt",
+    "savedLooksShoes": "Ayakkabı",
+    "savedLooksMissingItem": "Görsel yok"
   },
   "profile2": {
     "kicker": "HESABIN VE STİLİN",

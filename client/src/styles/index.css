@@ -293,7 +293,7 @@ html[data-form-focused="true"] .bottom-tabbar {
 
 .aura-hero {
   position: relative;
-  min-height: min(55vh, 520px);
+  min-height: min(44vh, 420px);
   overflow: hidden;
   border-radius: 8px;
   background: #d8c8b3;
@@ -313,8 +313,8 @@ html[data-form-focused="true"] .bottom-tabbar {
   right: 0;
   bottom: 0;
   left: 0;
-  height: 48%;
-  background: rgb(15 15 15 / 0.54);
+  height: 56%;
+  background: linear-gradient(to top, rgb(12 12 12 / 0.72), rgb(12 12 12 / 0.42), transparent);
 }
 
 .aura-hero-content {
@@ -337,7 +337,7 @@ html[data-form-focused="true"] .bottom-tabbar {
 .aura-hero-content h2 {
   max-width: 270px;
   margin: 6px 0 4px;
-  font-size: 28px;
+  font-size: 25px;
   font-weight: 600;
   line-height: 1.08;
 }
@@ -353,12 +353,12 @@ html[data-form-focused="true"] .bottom-tabbar {
 .aura-hero-actions {
   display: grid;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .aura-button {
   display: flex;
-  min-height: 48px;
+  min-height: 44px;
   width: 100%;
   align-items: center;
   justify-content: center;
@@ -766,6 +766,22 @@ html[data-form-focused="true"] .bottom-tabbar {
   font-size: 11px;
 }
 
+.wardrobe-header > div > p:not(.aura-kicker),
+.mirror-header > p:not(.aura-kicker),
+.profile-title > p:not(.aura-kicker) {
+  max-width: 320px;
+  margin: 4px 0 0;
+  color: var(--aura-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.wardrobe-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+}
+
 .aura-icon-button {
   display: grid;
   width: 40px;
@@ -878,7 +894,7 @@ html[data-form-focused="true"] .bottom-tabbar {
 .aura-wardrobe-card > img,
 .aura-wardrobe-placeholder {
   width: 100%;
-  aspect-ratio: 1 / 1.08;
+  aspect-ratio: 1 / 0.96;
   object-fit: cover;
 }
 
@@ -894,9 +910,9 @@ html[data-form-focused="true"] .bottom-tabbar {
 
 .aura-wardrobe-placeholder svg { width: 24px; }
 
-.aura-wardrobe-meta { padding: 9px; }
+.aura-wardrobe-meta { padding: 7px 8px; }
 .aura-wardrobe-meta p { overflow: hidden; margin: 0; font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.aura-wardrobe-meta small { display: block; overflow: hidden; margin-top: 2px; color: var(--aura-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.aura-wardrobe-meta small { display: block; overflow: hidden; margin-top: 1px; color: var(--aura-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 
 .wardrobe-skeleton { aspect-ratio: 1 / 1.25; border-radius: 7px; background: #ece9e4; animation: see-on-me-pulse 1.8s ease-in-out infinite; }
 .wardrobe-empty { margin-top: 20px; }
@@ -970,25 +986,70 @@ html[data-form-focused="true"] .bottom-tabbar {
 .aura-sheet-row.is-primary small { color: rgb(255 255 255 / 0.7); }
 .aura-sheet-cancel { display: block; margin: 14px auto 0; border: 0; background: transparent; padding: 8px; color: var(--aura-muted); font-size: 12px; }
 
+.wardrobe-filter-sheet {
+  display: grid;
+  gap: 14px;
+}
+
+.wardrobe-filter-group p {
+  margin: 0 0 8px;
+  color: var(--aura-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.wardrobe-filter-group > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.wardrobe-filter-group button,
+.wardrobe-filter-actions button {
+  border: 1px solid var(--aura-line);
+  border-radius: 999px;
+  background: white;
+  padding: 8px 11px;
+  color: var(--aura-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.wardrobe-filter-group button.is-active,
+.wardrobe-filter-actions button:last-child {
+  border-color: var(--aura-ink);
+  background: var(--aura-ink);
+  color: white;
+}
+
+.wardrobe-filter-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 2px;
+}
+
 .profile-shell {
   height: 100%;
-  padding: 14px 16px 28px;
+  padding: 12px 16px 22px;
 }
 
 .profile-identity {
   display: grid;
-  grid-template-columns: 50px minmax(0, 1fr) auto;
-  gap: 12px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  margin: 16px 0;
+  margin: 12px 0;
   border: 1px solid var(--aura-line);
   border-radius: 8px;
   background: white;
-  padding: 14px;
+  padding: 10px 12px;
 }
 
-.profile-avatar { display: grid; width: 50px; height: 50px; place-items: center; border-radius: 50%; background: var(--aura-soft); }
-.profile-avatar svg { width: 30px; }
+.profile-avatar { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 50%; background: var(--aura-soft); }
+.profile-avatar svg { width: 25px; }
 .profile-identity h3, .profile-identity p { margin: 0; }
 .profile-identity h3 { font-size: 13px; }
 .profile-identity p { margin-top: 2px; color: var(--aura-muted); font-size: 10px; }
@@ -1005,14 +1066,14 @@ html[data-form-focused="true"] .bottom-tabbar {
 .profile-list button {
   display: grid;
   width: 100%;
-  min-height: 52px;
+  min-height: 46px;
   grid-template-columns: 22px minmax(0, 1fr) 16px;
   gap: 10px;
   align-items: center;
   border: 0;
   border-bottom: 1px solid #efede8;
   background: white;
-  padding: 10px 12px;
+  padding: 8px 11px;
   text-align: left;
 }
 
@@ -1093,6 +1154,98 @@ html[data-form-focused="true"] .bottom-tabbar {
 .profile-detail-card p { margin: 4px 0 0; color: var(--aura-muted); font-size: 11px; line-height: 1.5; }
 .profile-version { margin: 24px 0 0; color: #aaa7a1; font-size: 9px; text-align: center; }
 
+.saved-look-card {
+  overflow: hidden;
+  border: 1px solid var(--aura-line);
+  border-radius: 16px;
+  background: white;
+  text-align: left;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.06);
+  transition: transform 160ms ease;
+}
+
+.saved-look-card:active {
+  transform: scale(0.99);
+}
+
+.saved-look-pieces {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.saved-look-piece {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.saved-look-piece img,
+.saved-look-piece > svg {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--aura-soft);
+  object-fit: cover;
+  color: #9a958c;
+  padding: 7px;
+}
+
+.saved-look-piece img {
+  padding: 0;
+}
+
+.saved-look-piece small,
+.saved-look-piece strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-look-piece small {
+  color: var(--aura-muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.saved-look-piece strong {
+  margin-top: 1px;
+  color: var(--aura-ink);
+  font-size: 11px;
+}
+
+.saved-look-empty {
+  display: grid;
+  place-items: center;
+  margin-top: 12px;
+  border: 1px dashed var(--aura-line);
+  border-radius: 16px;
+  background: #faf9f6;
+  padding: 22px 16px;
+  text-align: center;
+}
+
+.saved-look-empty svg {
+  width: 24px;
+  color: #d5a1ac;
+}
+
+.saved-look-empty strong {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.saved-look-empty p {
+  max-width: 240px;
+  margin: 4px 0 0;
+  color: var(--aura-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .profile-diagnostics {
   overflow: hidden;
   border: 1px solid var(--aura-line);
@@ -1119,6 +1272,6 @@ html[data-form-focused="true"] .bottom-tabbar {
   .mirror-shell,
   .wardrobe-shell,
   .profile-shell { padding-right: 24px; padding-left: 24px; }
-  .aura-hero { min-height: 520px; }
+  .aura-hero { min-height: 420px; }
   .wardrobe-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

@@ -47,7 +47,8 @@
     "startTrial": "Try Premium for Free (3 days)",
     "skip": "Skip",
     "back": "Back",
-    "next": "Next"
+    "next": "Next",
+    "done": "Done"
   },
   "onboarding": {
     "eyebrow": "QUICK START",
@@ -77,7 +78,7 @@
     "heroAlt": "Model wearing a charcoal suit",
     "kicker": "OUTFIT MIRROR AI",
     "title": "Your personal AI stylist",
-    "description": "Show your outfit, get clear feedback, and preview a better version on you.",
+    "description": "Let's decide what you want to wear today together.",
     "analyze": "Analyze My Outfit",
     "seeOnMe": "See On Me",
     "premium": "Premium",
@@ -100,7 +101,7 @@
   },
   "wardrobe": {
     "title": "Wardrobe",
-    "description": "Search, filter, and manage your clothes in a clean grid.",
+    "description": "I can analyze your wardrobe and spot the missing pieces.",
     "searchPlaceholder": "Search by color, type, season, or style",
     "addAction": "Add clothes",
     "emptyTitle": "No matching items",
@@ -111,7 +112,12 @@
       "bottoms": "Bottoms",
       "shoes": "Shoes",
       "jackets": "Jackets",
-      "withPhotos": "Only items with photos"
+      "withPhotos": "Only items with photos",
+      "title": "Filter",
+      "category": "Category",
+      "season": "Season",
+      "color": "Color",
+      "clear": "Clear"
     },
     "improve": {
       "action": "Improve My Wardrobe",
@@ -169,6 +175,7 @@
   "mirror": {
     "kicker": "PHOTO-BASED STYLE",
     "title": "Mirror",
+    "description": "Let's find the look that fits you best.",
     "review": "Outfit Review",
     "seeOnMe": "See On Me",
     "photoAlt": "Full-body outfit photo example",
@@ -211,12 +218,17 @@
   },
   "profile": {
     "title": "Profile",
-    "description": "Manage language, appearance preferences, premium status, and saved looks.",
+    "description": "Manage your style preferences and account here.",
     "accountTitle": "Account and access",
     "appearancePreferencesTitle": "Appearance & Preferences",
     "savedLooksTitle": "Saved Looks",
     "savedSeeOnMeTitle": "See On Me preview",
-    "savedLooksEmpty": "No saved or recently suggested outfits yet."
+    "savedLooksEmptyTitle": "No saved looks yet",
+    "savedLooksEmpty": "Save a preview you like and you can open it again here.",
+    "savedLooksTop": "Top",
+    "savedLooksBottom": "Bottom",
+    "savedLooksShoes": "Shoes",
+    "savedLooksMissingItem": "No image"
   },
   "profile2": {
     "kicker": "YOUR ACCOUNT AND STYLE",
