@@ -845,6 +845,7 @@ router.post('/analyze-image', analyzeImageRateLimit, async (req, res) => {
 });
 
 router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res) => {
+  const requestStartedAt = Date.now();
   const userId = requireUserId(req, res);
   if (!userId) return;
 
@@ -890,11 +891,20 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
   const cachedPreview = !adminBypass ? getCachedPreview(cacheKey) : null;
 
   if (cachedPreview) {
-    console.log('[ai/see-on-me] cache hit', { userId, accessTier });
+    const cacheHitDurationMs = Date.now() - requestStartedAt;
+    console.log('[ai/see-on-me] cache hit', { userId, accessTier, durationMs: cacheHitDurationMs });
     return res.json({
       ...cachedPreview,
       usage,
-      cached: true
+      cached: true,
+      metadata: {
+        ...(cachedPreview.metadata || {}),
+        timings: {
+          ...(cachedPreview.metadata?.timings || {}),
+          cacheHitDurationMs,
+          totalDurationMs: cacheHitDurationMs
+        }
+      }
     });
   }
 
@@ -954,12 +964,14 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
   });
 
   try {
+    const validationStartedAt = Date.now();
     const validation = await validateSeeOnMePhoto({
       client,
       model: modelByTier.nano,
       imageDataUrl,
       language
     });
+    const validationDurationMs = Date.now() - validationStartedAt;
     recordAiUsage({ userId, accessTier, taskType: 'see-on-me-validation', modelTier: 'nano' });
 
     if (validation.severity !== 'ok') {
@@ -999,8 +1011,10 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
     }
 
     let preview;
+    let generationDurationMs = 0;
 
     try {
+      const generationStartedAt = Date.now();
       preview = await generateSeeOnMePreview({
         client,
         imageDataUrl,
@@ -1009,8 +1023,19 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
         preferences,
         language
       });
+      generationDurationMs = Date.now() - generationStartedAt;
       recordAiUsage({ userId, accessTier, taskType: 'see-on-me-generation', modelTier: 'pro' });
-      console.log('[ai/see-on-me] generation success', { userId, accessTier });
+      console.log('[ai/see-on-me] generation success', {
+        userId,
+        accessTier,
+        timings: {
+          validationDurationMs,
+          generationDurationMs,
+          openAiGenerationDurationMs: preview.generationDiagnostics?.durationMs || generationDurationMs,
+          totalDurationMs: Date.now() - requestStartedAt
+        },
+        generationDiagnostics: preview.generationDiagnostics || null
+      });
     } catch (generationError) {
       const classification = logOpenAIError(generationError, {
         accessTier,
@@ -1032,6 +1057,12 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
     }
 
     const nextUsage = recordSeeOnMeUsage(userId, accessTier);
+    const timings = {
+      validationDurationMs,
+      generationDurationMs,
+      openAiGenerationDurationMs: preview.generationDiagnostics?.durationMs || generationDurationMs,
+      totalDurationMs: Date.now() - requestStartedAt
+    };
     const responsePayload = {
       ...preview,
       validation,
@@ -1040,13 +1071,22 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
       metadata: {
         modelTier: 'pro',
         validationModelTier: 'nano',
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        timings,
+        generationDiagnostics: preview.generationDiagnostics || null
       }
     };
     setCachedPreview(cacheKey, responsePayload);
 
     return res.json(responsePayload);
   } catch (error) {
+    console.error('[ai/see-on-me] route failure', {
+      userId,
+      accessTier,
+      durationMs: Date.now() - requestStartedAt,
+      message: error.message,
+      messageKey: error.messageKey
+    });
     captureBackendError(error, req, {
       area: 'ai-see-on-me',
       accessTier,

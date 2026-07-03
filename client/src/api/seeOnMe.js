@@ -26,6 +26,10 @@ export function getSeeOnMeDebug() {
   }
 }
 
+function nowMs() {
+  return Math.round(performance.now());
+}
+
 function seeOnMeHeaders() {
   return {
     'Content-Type': 'application/json',
@@ -106,6 +110,8 @@ function getPayloadBytes(payload) {
 
 export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceProfile, preferences, language, continueAnyway = false }) {
   const accessStatus = getAccessStatus();
+  const totalStartedAt = nowMs();
+  const prepareStartedAt = nowMs();
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 90000);
   const requestImageDataUrl = await compressImageDataUrlToBudget(imageDataUrl, {
@@ -116,6 +122,7 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
     minQuality: 0.58
   });
   const requestOutfit = await prepareOutfitForSeeOnMe(outfit);
+  const prepareDurationMs = nowMs() - prepareStartedAt;
   const requestBody = {
     imageDataUrl: requestImageDataUrl,
     outfit: requestOutfit,
@@ -135,10 +142,14 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
     status: 'started',
     imageBytes: requestImageDataUrl.length,
     originalImageBytes: imageDataUrl.length,
-    requestBodyBytes
+    requestBodyBytes,
+    timings: {
+      prepareDurationMs
+    }
   });
 
   try {
+    const requestStartedAt = nowMs();
     const { response, data, url, responseText } = await fetchJson('/ai/see-on-me', {
       method: 'POST',
       headers: seeOnMeHeaders(),
@@ -147,12 +158,26 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
     }, 'see-on-me:generate');
 
     handleResponse(response, data, 'see-on-me-generate', { url, responseText });
-    saveSeeOnMeDebug({ status: 'success', requestUrl: url, usedFallback: Boolean(data.usedFallback) });
+    const requestDurationMs = nowMs() - requestStartedAt;
+    const totalDurationMs = nowMs() - totalStartedAt;
+    saveSeeOnMeDebug({
+      status: 'success',
+      requestUrl: url,
+      usedFallback: Boolean(data.usedFallback),
+      timings: {
+        prepareDurationMs,
+        requestDurationMs,
+        totalDurationMs,
+        server: data.metadata?.timings || null
+      }
+    });
     addMonitoringBreadcrumb('ai', 'see-on-me:success', {
-      usedFallback: Boolean(data.usedFallback)
+      usedFallback: Boolean(data.usedFallback),
+      totalDurationMs
     });
     return data;
   } catch (error) {
+    const totalDurationMs = nowMs() - totalStartedAt;
     saveSeeOnMeDebug({
       status: 'failed',
       requestUrl: error.requestUrl,
@@ -163,7 +188,11 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
       category: error.payload?.category,
       imageBytes: requestImageDataUrl.length,
       originalImageBytes: imageDataUrl.length,
-      requestBodyBytes
+      requestBodyBytes,
+      timings: {
+        prepareDurationMs,
+        totalDurationMs
+      }
     });
     if (error.payload || error.status) throw error;
     throw getFriendlyError(error, 'seeOnMe.generationFailed');

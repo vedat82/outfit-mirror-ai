@@ -67,6 +67,8 @@ const wardrobeSearchSeasons = ['all', 'spring', 'summer', 'fall', 'winter'];
 const wardrobeSearchStyles = ['casual', 'formal', 'sporty', 'classic'];
 const wardrobeSheetSeasons = ['all', 'spring', 'summer', 'fall', 'winter'];
 const wardrobeSheetColors = ['all', 'black', 'white', 'gray', 'blue', 'navy', 'beige', 'brown', 'green'];
+const recentOutfitsStorageKey = 'outfitMirrorRecentOutfits';
+const maxRecentOutfits = 10;
 const neutralColors = new Set(['black', 'white', 'gray', 'navy', 'beige', 'cream']);
 const darkColors = new Set(['black', 'navy', 'brown', 'gray']);
 const lightColors = new Set(['white', 'beige', 'cream']);
@@ -109,6 +111,27 @@ function stripOutfitImages(outfit = {}) {
     }
   }
   return nextOutfit;
+}
+
+function loadRecentOutfits() {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(recentOutfitsStorageKey) || '[]');
+    return Array.isArray(stored) ? stored.slice(0, maxRecentOutfits) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentOutfits(outfits) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(recentOutfitsStorageKey, JSON.stringify(outfits.slice(0, maxRecentOutfits)));
+  } catch {
+    // Recent outfits are a convenience cache; never block the app for storage errors.
+  }
 }
 
 function hasEnoughWardrobeForOutfit(clothes) {
@@ -1841,7 +1864,7 @@ function SavedLookPreviewCard({ look, onSelect }) {
 
   return (
     <button type="button" onClick={() => onSelect?.(look)} className="saved-look-card">
-      <img src={look.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="h-56 w-full object-cover" loading="lazy" decoding="async" />
+      <img src={look.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="h-56 w-full bg-slate-950 object-contain" loading="lazy" decoding="async" />
       <div className="p-3">
         <p className="text-sm font-semibold text-slate-950">{t('profile.savedSeeOnMeTitle')}</p>
         <p className="mt-1 text-xs text-slate-500">{look.createdAt ? new Date(look.createdAt).toLocaleDateString() : ''}</p>
@@ -1859,20 +1882,26 @@ function SavedLooksSection({ likedOutfits, isLoadingLikedOutfits, outfitHistory,
   const { t } = useI18n();
   const [selectedLook, setSelectedLook] = useState(null);
 
+  if (selectedLook) {
+    return (
+      <SoftCard>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-base font-semibold text-slate-950">{t('profile.savedLooksTitle')}</h3>
+          <button type="button" onClick={() => setSelectedLook(null)} className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-900">
+            {t('buttons.back')}
+          </button>
+        </div>
+        <div className="mt-3 grid gap-3 rounded-2xl border border-teal-100 bg-teal-50 p-3">
+          <img src={selectedLook.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="max-h-[520px] w-full rounded-2xl bg-slate-950 object-contain" loading="lazy" decoding="async" />
+          <p className="text-sm font-semibold text-teal-950">{t('profile.savedSeeOnMeTitle')}</p>
+        </div>
+      </SoftCard>
+    );
+  }
+
   return (
     <SoftCard>
       <h3 className="text-base font-semibold text-slate-950">{t('profile.savedLooksTitle')}</h3>
-      {selectedLook ? (
-        <div className="mt-3 grid gap-3 rounded-2xl border border-teal-100 bg-teal-50 p-3">
-          <img src={selectedLook.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="max-h-[520px] w-full rounded-2xl bg-slate-950 object-contain" loading="lazy" decoding="async" />
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-teal-950">{t('profile.savedSeeOnMeTitle')}</p>
-            <button type="button" onClick={() => setSelectedLook(null)} className="rounded-xl border border-teal-200 bg-white px-3 py-2 text-xs font-semibold text-teal-900">
-              {t('buttons.back')}
-            </button>
-          </div>
-        </div>
-      ) : null}
       {isLoadingLikedOutfits || isLoadingSavedLooks ? (
         <p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">{t('likedOutfits.loading')}</p>
       ) : savedLooks.length ? (
@@ -1916,7 +1945,11 @@ function DiagnosticsCard() {
     ['See status', seeOnMeDebug?.httpStatus || '-'],
     ['See code', seeOnMeDebug?.safeCode || seeOnMeDebug?.category || '-'],
     ['See body bytes', seeOnMeDebug?.requestBodyBytes || '-'],
-    ['See image bytes', seeOnMeDebug?.imageBytes || '-']
+    ['See image bytes', seeOnMeDebug?.imageBytes || '-'],
+    ['See total ms', seeOnMeDebug?.timings?.totalDurationMs || '-'],
+    ['See request ms', seeOnMeDebug?.timings?.requestDurationMs || '-'],
+    ['See server ms', seeOnMeDebug?.timings?.server?.totalDurationMs || '-'],
+    ['See AI ms', seeOnMeDebug?.timings?.server?.openAiGenerationDurationMs || seeOnMeDebug?.timings?.server?.generationDurationMs || '-']
   ];
 
   return (
@@ -2174,7 +2207,7 @@ export default function App() {
   const [paywallRequestId, setPaywallRequestId] = useState(0);
   const [likedOutfits, setLikedOutfits] = useState([]);
   const [savedLooks, setSavedLooks] = useState([]);
-  const [outfitHistory, setOutfitHistory] = useState([]);
+  const [outfitHistory, setOutfitHistory] = useState(() => loadRecentOutfits());
   const [reviewHistory, setReviewHistory] = useState([]);
   const paymentRequestRef = useRef(0);
   const suggestionPreferences = {
@@ -2238,7 +2271,11 @@ export default function App() {
   }
 
   function rememberOutfit(outfit) {
-    setOutfitHistory((current) => [{ ...outfit, historyId: `${Date.now()}-${Math.random().toString(36).slice(2)}` }, ...current].slice(0, 8));
+    setOutfitHistory((current) => {
+      const nextHistory = [{ ...outfit, historyId: `${Date.now()}-${Math.random().toString(36).slice(2)}` }, ...current].slice(0, maxRecentOutfits);
+      saveRecentOutfits(nextHistory);
+      return nextHistory;
+    });
   }
 
   async function handleAdd(payload) {
