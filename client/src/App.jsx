@@ -1946,6 +1946,7 @@ function DiagnosticsCard() {
     ['See code', seeOnMeDebug?.safeCode || seeOnMeDebug?.category || '-'],
     ['See body bytes', seeOnMeDebug?.requestBodyBytes || '-'],
     ['See image bytes', seeOnMeDebug?.imageBytes || '-'],
+    ['See prepare ms', seeOnMeDebug?.timings?.prepareDurationMs || '-'],
     ['See total ms', seeOnMeDebug?.timings?.totalDurationMs || '-'],
     ['See request ms', seeOnMeDebug?.timings?.requestDurationMs || '-'],
     ['See server ms', seeOnMeDebug?.timings?.server?.totalDurationMs || '-'],
