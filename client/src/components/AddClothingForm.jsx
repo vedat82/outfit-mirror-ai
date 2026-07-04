@@ -19,6 +19,7 @@ const initialForm = {
   confidence: 1,
   selected: true,
   imageUrl: '',
+  box: null,
   uncertainFields: []
 };
 
@@ -65,6 +66,7 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
       confidence: Number.isFinite(Number(item.confidence)) ? Number(item.confidence) : 1,
       selected: Number(item.confidence) >= 0.65 && !item.usedFallback,
       imageUrl,
+      box: item.box || null,
       uncertainFields: Array.isArray(item.uncertainFields) ? item.uncertainFields : []
     };
   }
@@ -214,7 +216,8 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
       color: normalizeOption('colors', item.color, colors),
       season: item.season,
       style: item.style,
-      imageUrl: item.imageUrl || previewImage
+      imageUrl: item.imageUrl || previewImage,
+      sourceBox: item.box || null
     }));
 
     try {

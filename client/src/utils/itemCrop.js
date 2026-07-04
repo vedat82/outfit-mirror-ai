@@ -39,3 +39,26 @@ export function getItemCropRect(type = '', index = 0, itemCount = 1) {
     height: 1 / rows
   });
 }
+
+export function normalizeItemCropBox(box) {
+  if (!box || typeof box !== 'object') return null;
+
+  const x = Number(box.x);
+  const y = Number(box.y);
+  const width = Number(box.width);
+  const height = Number(box.height);
+
+  if (![x, y, width, height].every(Number.isFinite)) return null;
+  if (width <= 0.05 || height <= 0.05) return null;
+
+  return clampRect({
+    x,
+    y,
+    width,
+    height
+  });
+}
+
+export function getItemPreviewCropRect(item = {}, index = 0, itemCount = 1) {
+  return normalizeItemCropBox(item.box) || getItemCropRect(item.type, index, itemCount);
+}

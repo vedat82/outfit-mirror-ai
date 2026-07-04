@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { getItemCropRect } from './itemCrop.js';
+import { getItemCropRect, getItemPreviewCropRect, normalizeItemCropBox } from './itemCrop.js';
 
 test('item crop rectangles use different visible areas by clothing type', () => {
   const shirtCrop = getItemCropRect('shirt', 0, 3);
@@ -29,4 +29,35 @@ test('unknown item crop falls back to distributed cells', () => {
   assert.equal(firstCrop.y, secondCrop.y);
   assert.ok(firstCrop.x < secondCrop.x);
   assert.notDeepEqual(firstCrop, secondCrop);
+});
+
+test('item preview crop prefers normalized AI bounding boxes', () => {
+  const crop = getItemPreviewCropRect({
+    type: 'shirt',
+    box: { x: 0.12, y: 0.22, width: 0.3, height: 0.4 }
+  }, 0, 2);
+
+  assert.equal(crop.x, 0.12);
+  assert.equal(crop.y, 0.22);
+  assert.equal(crop.width, 0.3);
+  assert.equal(crop.height, 0.4);
+});
+
+test('invalid AI bounding boxes fall back to type crop', () => {
+  const fallback = getItemCropRect('pants', 0, 2);
+  const crop = getItemPreviewCropRect({
+    type: 'pants',
+    box: { x: 'bad', y: 0.22, width: 0.3, height: 0.4 }
+  }, 0, 2);
+
+  assert.deepEqual(crop, fallback);
+});
+
+test('normalizes oversized AI bounding boxes into image bounds', () => {
+  const crop = normalizeItemCropBox({ x: 0.9, y: 0.92, width: 0.5, height: 0.5 });
+
+  assert.equal(crop.x, 0.9);
+  assert.equal(crop.y, 0.92);
+  assert.ok(Math.abs(crop.width - 0.1) < 0.000001);
+  assert.equal(crop.height, 0.08);
 });

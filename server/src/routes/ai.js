@@ -268,8 +268,10 @@ Keep it concise. Max 3 suggestions. Write feedback and suggestions in ${response
   }
 
   return `Analyze clothing in this image. Return only JSON:
-{"items":[{"type":"tshirt|shirt|jacket|pants|shoes","color":"black|white|gray|blue|navy|beige|brown|red|green|pink|cream","style":"casual|formal|sporty","season":"all|spring|summer|fall|winter","confidence":0-1}]}
-Use closest allowed values. If there are multiple visible clothing items, include up to 4. Use confidence to reflect image clarity.`;
+{"items":[{"type":"tshirt|shirt|jacket|pants|shoes","color":"black|white|gray|blue|navy|beige|brown|red|green|pink|cream","style":"casual|formal|sporty","season":"all|spring|summer|fall|winter","confidence":0-1,"box":{"x":0-1,"y":0-1,"width":0-1,"height":0-1}}]}
+Use closest allowed values. If there are multiple visible clothing items, include up to 4.
+For each item, include a normalized bounding box around only that clothing item, relative to the full image: x/y are top-left, width/height are item size. Make the box slightly generous, but avoid including unrelated garments when possible.
+Use confidence to reflect image clarity and item certainty.`;
 }
 
 function buildPhotoValidationPrompt(language) {
@@ -442,6 +444,30 @@ function pickAllowed(value, allowedValues, fallback) {
   };
 }
 
+function normalizeBoundingBox(box) {
+  if (!box || typeof box !== 'object') return null;
+
+  const x = Number(box.x);
+  const y = Number(box.y);
+  const width = Number(box.width);
+  const height = Number(box.height);
+
+  if (![x, y, width, height].every(Number.isFinite)) return null;
+  if (width <= 0.05 || height <= 0.05) return null;
+
+  const safeX = Math.max(0, Math.min(0.96, x));
+  const safeY = Math.max(0, Math.min(0.96, y));
+  const safeWidth = Math.max(0.08, Math.min(1 - safeX, width));
+  const safeHeight = Math.max(0.08, Math.min(1 - safeY, height));
+
+  return {
+    x: Number(safeX.toFixed(4)),
+    y: Number(safeY.toFixed(4)),
+    width: Number(safeWidth.toFixed(4)),
+    height: Number(safeHeight.toFixed(4))
+  };
+}
+
 function parseJsonResponse(content) {
   try {
     return JSON.parse(content);
@@ -514,6 +540,7 @@ function normalizeClothingAnalysis(rawAnalysis, fallbackMessage = reviewMessage)
         style: style.value,
         season: season.value,
         confidence,
+        box: normalizeBoundingBox(item.box),
         uncertainFields
       };
     });
@@ -610,7 +637,7 @@ async function runOpenAIAnalysis({ client, model, mode, imageDataUrl, language, 
       }
     ],
     response_format: { type: 'json_object' },
-    max_tokens: 260
+    max_tokens: mode === 'clothing' ? 420 : 260
   });
 
   const content = completion.choices?.[0]?.message?.content || '{}';

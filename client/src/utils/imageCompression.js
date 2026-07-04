@@ -1,5 +1,5 @@
 import { addMonitoringBreadcrumb, captureAppError } from '../monitoring/sentry.js';
-import { getItemCropRect } from './itemCrop.js';
+import { getItemPreviewCropRect } from './itemCrop.js';
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -207,7 +207,7 @@ export async function createItemPreviewImages(dataUrl, itemsOrCount, options = {
   const image = await loadImage(dataUrl);
 
   return Array.from({ length: itemCount }, (_, index) => {
-    const cropRect = getItemCropRect(items[index]?.type, index, itemCount);
+    const cropRect = getItemPreviewCropRect(items[index] || {}, index, itemCount);
     const sourceX = Math.round(cropRect.x * image.width);
     const sourceY = Math.round(cropRect.y * image.height);
     const sourceWidth = Math.max(1, Math.round(cropRect.width * image.width));
