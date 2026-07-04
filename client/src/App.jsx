@@ -1364,7 +1364,7 @@ function SeeOnMeOutfitPreview({ suggestion }) {
   );
 }
 
-function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences, onSaveAppearance, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks }) {
+function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences, onSaveAppearance, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks, onGenerationStatusChange }) {
   const { t, language } = useI18n();
   const [selectedPhotoId, setSelectedPhotoId] = useState(appearanceProfile.photos[0]?.id || '');
   const [selectedPhotoDataUrl, setSelectedPhotoDataUrl] = useState(appearanceProfile.photos[0]?.imageUrl || '');
@@ -1503,6 +1503,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
 
     isGeneratingRef.current = true;
     setState('generating');
+    onGenerationStatusChange?.({ status: 'generating', cached: false });
     setPreview(null);
     setErrorMessage('');
     setServiceError(null);
@@ -1520,6 +1521,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
       });
       setPreview(result);
       setErrorMessage(result.cached ? t('seeOnMe.cachedPreview') : '');
+      onGenerationStatusChange?.({ status: 'ready', cached: Boolean(result.cached) });
       setState(result.usedFallback || result.messageKey ? 'review' : 'ready');
     } catch (error) {
       const payloadMessageKey = error.payload?.messageKey;
@@ -1529,6 +1531,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
           validation: error.payload.validation
         });
         setState('review');
+        onGenerationStatusChange?.({ status: 'idle' });
         return;
       }
       const messageKey = payloadMessageKey || error.message;
@@ -1551,6 +1554,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
         setErrorMessage(payloadMessageKey ? t(payloadMessageKey) : error.message?.startsWith('seeOnMe.') || error.message?.startsWith('messages.') || error.message?.startsWith('premium.') ? t(error.message) : t('seeOnMe.unavailable'));
       }
       setState('error');
+      onGenerationStatusChange?.({ status: 'error' });
     } finally {
       isGeneratingRef.current = false;
     }
@@ -1561,6 +1565,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
 
     setPreview(null);
     setState('idle');
+    onGenerationStatusChange?.({ status: 'idle' });
     setErrorMessage('');
     setServiceError(null);
     setValidationWarning(null);
@@ -1735,7 +1740,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   );
 }
 
-function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearanceProfile, preferences, onSaveAppearance, activeTool, onActiveToolChange, suggestion, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks, onAnalysisComplete }) {
+function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearanceProfile, preferences, onSaveAppearance, activeTool, onActiveToolChange, suggestion, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks, onAnalysisComplete, onSeeOnMeGenerationStatusChange }) {
   const { t } = useI18n();
   const locked = !accessStatus.hasFullAccess;
   const mirrorTools = [
@@ -1767,8 +1772,7 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
       </div>
       <ScrollPanel className="mirror-content">
         <div className="mirror-tool-panel">
-          {activeTool === 'review' ? (
-            <section className="mirror-review">
+          <section className={activeTool === 'review' ? 'mirror-review' : 'mirror-review hidden'}>
               <div className="mirror-capture-intro">
                 <div className="mirror-capture-frame">
                   <img src={stylistHero} alt={t('mirror.photoAlt')} />
@@ -1785,10 +1789,8 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
                 </div>
               </div>
               <OutfitPhotoAnalysis clothes={clothes} accessStatus={accessStatus} appearanceProfile={appearanceProfile} preferences={preferences} onAnalysisComplete={onAnalysisComplete} />
-            </section>
-          ) : null}
-          {activeTool === 'see-on-me' ? (
-            <section className="mirror-see-on-me">
+          </section>
+          <section className={activeTool === 'see-on-me' ? 'mirror-see-on-me' : 'mirror-see-on-me hidden'}>
               <div className="mirror-tool-heading">
                 <div>
                   <p className="aura-kicker">{t('mirror.flagship')}</p>
@@ -1807,10 +1809,10 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
                 onGenerateNewOutfit={onGenerateNewOutfit}
                 onSavedLook={onSavedLook}
                 onOpenSavedLooks={onOpenSavedLooks}
+                onGenerationStatusChange={onSeeOnMeGenerationStatusChange}
               />
               )}
-            </section>
-          ) : null}
+          </section>
         </div>
       </ScrollPanel>
     </div>
@@ -2210,6 +2212,7 @@ export default function App() {
   const [savedLooks, setSavedLooks] = useState([]);
   const [outfitHistory, setOutfitHistory] = useState(() => loadRecentOutfits());
   const [reviewHistory, setReviewHistory] = useState([]);
+  const [seeOnMeJob, setSeeOnMeJob] = useState({ status: 'idle', cached: false, updatedAt: 0 });
   const paymentRequestRef = useRef(0);
   const suggestionPreferences = {
     ...preferences,
@@ -2729,6 +2732,19 @@ export default function App() {
     setMessage('premium.availableInPremium');
   }
 
+  function openSeeOnMePanel() {
+    setActiveStudioTool('see-on-me');
+    setActivePage('studio');
+  }
+
+  function handleSeeOnMeGenerationStatusChange(nextStatus) {
+    setSeeOnMeJob((current) => ({
+      ...current,
+      ...nextStatus,
+      updatedAt: Date.now()
+    }));
+  }
+
   async function handleOutfitFeedback(rating) {
     if (!suggestion) return;
 
@@ -2757,6 +2773,12 @@ export default function App() {
   };
   const isDailyLimitMessage = message === 'messages.dailyLimitReachedTitle';
   const hasEnoughWardrobe = hasEnoughWardrobeForOutfit(clothes);
+  const shouldShowSeeOnMeJobNotice = seeOnMeJob.status !== 'idle' && !(activePage === 'studio' && activeStudioTool === 'see-on-me');
+  const seeOnMeJobMessageKey = seeOnMeJob.status === 'generating'
+    ? 'seeOnMe.backgroundGenerating'
+    : seeOnMeJob.status === 'ready'
+      ? (seeOnMeJob.cached ? 'seeOnMe.backgroundCached' : 'seeOnMe.backgroundReady')
+      : 'seeOnMe.backgroundError';
 
   if (isPaymentResultPage) {
     return (
@@ -2850,6 +2872,7 @@ export default function App() {
               onSavedLook={handleSavedLook}
               onOpenSavedLooks={openSavedLooks}
               onAnalysisComplete={handleOutfitAnalysisComplete}
+              onSeeOnMeGenerationStatusChange={handleSeeOnMeGenerationStatusChange}
             />
           </div>
           <div className={activePage === 'profile' ? 'contents' : 'hidden'} aria-hidden={activePage !== 'profile'}>
@@ -2875,6 +2898,16 @@ export default function App() {
             />
           </div>
         </div>
+
+        {shouldShowSeeOnMeJobNotice ? (
+          <button type="button" onClick={openSeeOnMePanel} className={`see-on-me-job-toast is-${seeOnMeJob.status}`} aria-live="polite">
+            <span>
+              <strong>{t(seeOnMeJobMessageKey)}</strong>
+              <small>{seeOnMeJob.status === 'generating' ? t('seeOnMe.backgroundHint') : t('seeOnMe.openPreview')}</small>
+            </span>
+            <SparklesIcon aria-hidden="true" />
+          </button>
+        ) : null}
 
         <nav className="bottom-tabbar aura-tabbar">
           <div className="aura-tabbar-grid">

@@ -573,7 +573,13 @@
     "savedShort": "Kaydedildi",
     "savedToProfile": "Görünüm kaydedildi. Profil > Kaydedilen Görünümler bölümünde görebilirsin.",
     "openSavedLooks": "Kaydedilen Görünümleri Aç",
-    "cachedPreview": "Bu kombin için hazır önizleme kullanıldı."
+    "cachedPreview": "Bu kombin için hazır önizleme kullanıldı.",
+    "backgroundGenerating": "Önizlemen arka planda hazırlanıyor",
+    "backgroundHint": "Hazır olunca buradan hemen açabilirsin.",
+    "backgroundReady": "Önizlemen hazır",
+    "backgroundCached": "Hazır önizleme bulundu",
+    "backgroundError": "Önizleme tamamlanamadı",
+    "openPreview": "Görmek için dokun."
   },
   "language": {
     "label": "Dil",

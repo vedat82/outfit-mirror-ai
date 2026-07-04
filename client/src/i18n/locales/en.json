@@ -573,7 +573,13 @@
     "savedShort": "Saved",
     "savedToProfile": "Look saved. You can find it under Profile > Saved Looks.",
     "openSavedLooks": "Open Saved Looks",
-    "cachedPreview": "A ready preview was used for this outfit."
+    "cachedPreview": "A ready preview was used for this outfit.",
+    "backgroundGenerating": "Your preview is being prepared in the background",
+    "backgroundHint": "You can open it here as soon as it is ready.",
+    "backgroundReady": "Your preview is ready",
+    "backgroundCached": "Ready preview found",
+    "backgroundError": "Preview could not be completed",
+    "openPreview": "Tap to view."
   },
   "language": {
     "label": "Language",

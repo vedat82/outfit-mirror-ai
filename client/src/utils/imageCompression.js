@@ -134,11 +134,70 @@ export async function optimizeAiImageFile(file, options = {}) {
   });
 }
 
+function getRgbDistance(first, second) {
+  return Math.sqrt(
+    ((first[0] - second[0]) ** 2) +
+    ((first[1] - second[1]) ** 2) +
+    ((first[2] - second[2]) ** 2)
+  );
+}
+
+function samplePixel(data, width, x, y) {
+  const index = ((y * width) + x) * 4;
+  return [data[index], data[index + 1], data[index + 2]];
+}
+
+function cleanupUniformBackground(canvas, fillColor = [248, 250, 252]) {
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) return false;
+
+  const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+  const { data, width, height } = imageData;
+  const corners = [
+    samplePixel(data, width, 0, 0),
+    samplePixel(data, width, width - 1, 0),
+    samplePixel(data, width, 0, height - 1),
+    samplePixel(data, width, width - 1, height - 1)
+  ];
+  const averageCorner = corners.reduce((acc, pixel) => [
+    acc[0] + pixel[0] / corners.length,
+    acc[1] + pixel[1] / corners.length,
+    acc[2] + pixel[2] / corners.length
+  ], [0, 0, 0]);
+  const maxCornerDistance = Math.max(...corners.map((pixel) => getRgbDistance(pixel, averageCorner)));
+
+  if (maxCornerDistance > 52) {
+    return false;
+  }
+
+  let changedPixels = 0;
+  const threshold = 58;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const pixel = [data[index], data[index + 1], data[index + 2]];
+    if (getRgbDistance(pixel, averageCorner) > threshold) continue;
+
+    data[index] = fillColor[0];
+    data[index + 1] = fillColor[1];
+    data[index + 2] = fillColor[2];
+    data[index + 3] = 255;
+    changedPixels += 1;
+  }
+
+  if (changedPixels < (width * height * 0.04)) {
+    return false;
+  }
+
+  context.putImageData(imageData, 0, 0);
+  return true;
+}
+
 export async function createItemPreviewImages(dataUrl, itemsOrCount, options = {}) {
   const {
     size = 720,
     quality = 0.72,
-    mimeType = 'image/jpeg'
+    mimeType = 'image/jpeg',
+    cleanBackground = true
   } = options;
   const items = Array.isArray(itemsOrCount)
     ? itemsOrCount
@@ -169,7 +228,22 @@ export async function createItemPreviewImages(dataUrl, itemsOrCount, options = {
     const drawX = Math.round((size - drawWidth) / 2);
     const drawY = Math.round((size - drawHeight) / 2);
 
-    context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, drawX, drawY, drawWidth, drawHeight);
+    if (cleanBackground) {
+      const itemCanvas = document.createElement('canvas');
+      const itemContext = itemCanvas.getContext('2d');
+
+      if (itemContext) {
+        itemCanvas.width = drawWidth;
+        itemCanvas.height = drawHeight;
+        itemContext.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, drawWidth, drawHeight);
+        cleanupUniformBackground(itemCanvas);
+        context.drawImage(itemCanvas, drawX, drawY);
+      } else {
+        context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, drawX, drawY, drawWidth, drawHeight);
+      }
+    } else {
+      context.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, drawX, drawY, drawWidth, drawHeight);
+    }
 
     return canvas.toDataURL(mimeType, quality);
   });

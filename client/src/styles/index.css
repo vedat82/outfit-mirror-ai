@@ -126,6 +126,58 @@ html[data-form-focused="true"] .bottom-tabbar {
   bottom: calc(6rem + env(safe-area-inset-bottom) + var(--keyboard-offset));
 }
 
+.see-on-me-job-toast {
+  position: fixed;
+  right: 16px;
+  bottom: calc(6.1rem + env(safe-area-inset-bottom) + var(--keyboard-offset));
+  left: 16px;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  max-width: 38rem;
+  margin-inline: auto;
+  border: 1px solid rgb(20 184 166 / 0.24);
+  border-radius: 22px;
+  background: rgb(253 252 248 / 0.96);
+  padding: 13px 15px;
+  color: var(--aura-ink);
+  text-align: left;
+  box-shadow: 0 18px 48px rgb(15 23 42 / 0.14);
+  backdrop-filter: blur(18px);
+  animation: see-on-me-reveal 220ms ease-out both;
+}
+
+.see-on-me-job-toast strong,
+.see-on-me-job-toast small {
+  display: block;
+}
+
+.see-on-me-job-toast strong {
+  font-size: 13px;
+}
+
+.see-on-me-job-toast small {
+  margin-top: 2px;
+  color: var(--aura-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.see-on-me-job-toast svg {
+  width: 22px;
+  color: #0f766e;
+}
+
+.see-on-me-job-toast.is-generating svg {
+  animation: see-on-me-pulse 1.8s ease-in-out infinite;
+}
+
+.see-on-me-job-toast.is-error {
+  border-color: rgb(251 191 36 / 0.42);
+}
+
 @keyframes see-on-me-shimmer {
   0% {
     transform: translateX(-120%);
