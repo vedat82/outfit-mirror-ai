@@ -23,7 +23,7 @@ const initialForm = {
   uncertainFields: []
 };
 
-export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
+export default function AddClothingForm({ onAdd, isLoading, accessStatus, initialPhotoSourceRequest = null }) {
   const { t, optionLabel, language } = useI18n();
   const [detectedItems, setDetectedItems] = useState([initialForm]);
   const [previewImage, setPreviewImage] = useState('');
@@ -33,6 +33,8 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
   const [submitError, setSubmitError] = useState('');
   const libraryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
+  const analysisRequestRef = useRef(0);
+  const autoPickRequestRef = useRef(0);
   const canUseImageUpload = accessStatus.canUseImageUpload;
 
   useEffect(() => {
@@ -42,6 +44,21 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
       }
     };
   }, [previewImage]);
+
+  useEffect(() => {
+    const requestId = Number(initialPhotoSourceRequest?.requestId || 0);
+    const source = initialPhotoSourceRequest?.source;
+
+    if (!requestId || autoPickRequestRef.current === requestId) return;
+    if (![imageSources.photos, imageSources.camera].includes(source)) return;
+    if (!canUseImageUpload || isLoading) return;
+
+    autoPickRequestRef.current = requestId;
+    const fallbackRef = source === imageSources.camera ? cameraInputRef : libraryInputRef;
+    window.setTimeout(() => {
+      handleNativeImagePick(source, fallbackRef);
+    }, 120);
+  }, [canUseImageUpload, initialPhotoSourceRequest, isLoading]);
 
   function normalizeOption(group, value, options) {
     const cleanValue = value.trim();
@@ -100,32 +117,45 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
   }
 
   async function analyzeSelectedImage(imageDataUrl) {
+    const requestId = analysisRequestRef.current + 1;
+    analysisRequestRef.current = requestId;
+
     if (previewImage.startsWith('blob:')) {
       URL.revokeObjectURL(previewImage);
     }
 
+    setPreviewImage(imageDataUrl);
+    setDetectedItems([{ ...initialForm, id: Date.now(), selected: false, imageUrl: '' }]);
     setAnalysisState('analyzing');
     setAnalysisError('');
     setAnalysisMessage('');
     setSubmitError('');
 
     try {
-      setPreviewImage(imageDataUrl);
-
       try {
         const analysis = await analyzeImage({ mode: 'clothing', imageDataUrl, language });
+        if (analysisRequestRef.current !== requestId) return;
+
         const items = Array.isArray(analysis.items) ? analysis.items : [];
         const itemPreviews = await createItemPreviewImages(imageDataUrl, items.length ? items : [initialForm], { size: 720, quality: 0.72 });
+        if (analysisRequestRef.current !== requestId) return;
+
         setDetectedItems((items.length ? items : [initialForm]).map((item, index) => makeDetectedItem(item, index, itemPreviews[index] || imageDataUrl)));
         setAnalysisMessage(analysis.messageKey ? t(analysis.messageKey) : analysis.message || '');
         setAnalysisState(analysis.usedFallback || analysis.message ? 'review' : 'ready');
       } catch (error) {
+        if (analysisRequestRef.current !== requestId) return;
+
         const itemPreviews = await createItemPreviewImages(imageDataUrl, [initialForm], { size: 720, quality: 0.72 });
+        if (analysisRequestRef.current !== requestId) return;
+
         setDetectedItems([{ ...initialForm, id: Date.now(), imageUrl: itemPreviews[0] || imageDataUrl }]);
         setAnalysisError(error.message?.startsWith('messages.') ? t(error.message) : error.message?.includes('OPENAI_API_KEY') ? t('messages.aiConfigMissing') : t('addClothes.aiAnalysisFailed'));
         setAnalysisState('error');
       }
     } catch {
+      if (analysisRequestRef.current !== requestId) return;
+
       setAnalysisError(t('addClothes.aiAnalysisFailed'));
       setAnalysisState('error');
     }
@@ -157,6 +187,8 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
         await analyzeSelectedImage(imageDataUrl);
         return;
       }
+
+      if (isNativeApp()) return;
     } catch (error) {
       if (isNativeImagePickerCancel(error)) return;
       setAnalysisError(t('addClothes.aiAnalysisFailed'));
@@ -200,6 +232,7 @@ export default function AddClothingForm({ onAdd, isLoading, accessStatus }) {
   }
 
   function resetForm() {
+    analysisRequestRef.current += 1;
     setDetectedItems([initialForm]);
     setPreviewImage('');
     setAnalysisState('idle');

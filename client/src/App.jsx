@@ -1037,6 +1037,7 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [addPhotoSourceRequest, setAddPhotoSourceRequest] = useState(null);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [visibleRecommendationCount, setVisibleRecommendationCount] = useState(12);
 
@@ -1071,8 +1072,13 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
     setShowAddSheet(false);
   }
 
-  function openAddForm() {
+  function openAddForm(source = 'manual') {
     setShowAddSheet(false);
+    setAddPhotoSourceRequest(
+      [imageSources.photos, imageSources.camera].includes(source)
+        ? { source, requestId: Date.now() }
+        : null
+    );
     setShowAddForm(true);
   }
 
@@ -1087,7 +1093,7 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
           </div>
         </div>
         <ScrollPanel className="wardrobe-scroll">
-          <AddClothingForm onAdd={handleAddAndClose} isLoading={isAddingClothes} accessStatus={accessStatus} />
+          <AddClothingForm onAdd={handleAddAndClose} isLoading={isAddingClothes} accessStatus={accessStatus} initialPhotoSourceRequest={addPhotoSourceRequest} />
         </ScrollPanel>
       </div>
     );
@@ -1177,17 +1183,17 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
           <section className="aura-sheet" role="dialog" aria-modal="true" aria-labelledby="add-wardrobe-title" onClick={(event) => event.stopPropagation()}>
             <span className="aura-sheet-handle" />
             <h3 id="add-wardrobe-title">{t('wardrobe2.addTitle')}</h3>
-            <button type="button" className="aura-sheet-row is-primary" onClick={openAddForm}>
+            <button type="button" className="aura-sheet-row is-primary" onClick={() => openAddForm(imageSources.camera)}>
               <CameraIcon aria-hidden="true" />
               <span><strong>{t('wardrobe2.takePhoto')}</strong><small>{t('wardrobe2.takePhotoDescription')}</small></span>
               <ChevronRightIcon aria-hidden="true" />
             </button>
-            <button type="button" className="aura-sheet-row" onClick={openAddForm}>
+            <button type="button" className="aura-sheet-row" onClick={() => openAddForm(imageSources.photos)}>
               <PhotoIcon aria-hidden="true" />
               <span><strong>{t('wardrobe2.library')}</strong><small>{t('wardrobe2.libraryDescription')}</small></span>
               <ChevronRightIcon aria-hidden="true" />
             </button>
-            <button type="button" className="aura-sheet-row" onClick={openAddForm}>
+            <button type="button" className="aura-sheet-row" onClick={() => openAddForm('manual')}>
               <PlusIcon aria-hidden="true" />
               <span><strong>{t('wardrobe2.manual')}</strong><small>{t('wardrobe2.manualDescription')}</small></span>
               <ChevronRightIcon aria-hidden="true" />
