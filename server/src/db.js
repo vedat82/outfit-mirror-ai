@@ -202,6 +202,22 @@ export function initDb() {
   `);
 
   db.exec('CREATE INDEX IF NOT EXISTS idx_saved_looks_user_id ON saved_looks (user_id, created_at);');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS background_removal_cache (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      image_hash TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      output_image_url TEXT NOT NULL,
+      input_bytes INTEGER NOT NULL DEFAULT 0,
+      output_bytes INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, image_hash)
+    );
+  `);
+
+  db.exec('CREATE INDEX IF NOT EXISTS idx_background_removal_cache_user_id ON background_removal_cache (user_id, created_at);');
 }
 
 initDb();

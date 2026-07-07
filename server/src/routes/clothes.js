@@ -55,7 +55,7 @@ router.post('/', async (req, res) => {
   }
 
   const imageProcessing = imageUrl
-    ? await removeBackgroundFromImage(imageUrl)
+    ? await removeBackgroundFromImage(imageUrl, { userId })
     : { imageUrl, changed: false, provider: 'none', reason: 'no-image', durationMs: 0 };
   const finalImageUrl = imageProcessing.imageUrl || imageUrl;
 
@@ -85,7 +85,9 @@ router.post('/', async (req, res) => {
       reason: imageProcessing.reason || '',
       durationMs: imageProcessing.durationMs || 0,
       inputBytes: imageProcessing.inputBytes || 0,
-      outputBytes: imageProcessing.outputBytes || 0
+      outputBytes: imageProcessing.outputBytes || 0,
+      cached: Boolean(imageProcessing.cached),
+      cost: imageProcessing.cost || null
     }
   });
 });
