@@ -61,3 +61,25 @@ test('normalizes oversized AI bounding boxes into image bounds', () => {
   assert.ok(Math.abs(crop.width - 0.1) < 0.000001);
   assert.equal(crop.height, 0.08);
 });
+
+test('shoe preview crop expands narrow AI boxes to avoid showing only a heel', () => {
+  const crop = getItemPreviewCropRect({
+    type: 'shoes',
+    box: { x: 0.72, y: 0.74, width: 0.12, height: 0.12 }
+  }, 0, 1);
+
+  assert.ok(crop.width >= 0.5);
+  assert.ok(crop.height >= 0.22);
+  assert.ok(crop.x < 0.72);
+  assert.ok(crop.y <= 0.74);
+});
+
+test('shoe preview crop still keeps generous valid AI boxes', () => {
+  const crop = getItemPreviewCropRect({
+    type: 'shoes',
+    box: { x: 0.18, y: 0.64, width: 0.5, height: 0.22 }
+  }, 0, 1);
+
+  assert.equal(crop.width, 0.5);
+  assert.equal(crop.height, 0.22);
+});

@@ -59,6 +59,33 @@ export function normalizeItemCropBox(box) {
   });
 }
 
+function expandRect(rect, minWidth, minHeight) {
+  const width = Math.min(1, Math.max(rect.width, minWidth));
+  const height = Math.min(1, Math.max(rect.height, minHeight));
+  const centerX = rect.x + rect.width / 2;
+  const centerY = rect.y + rect.height / 2;
+  const x = Math.max(0, Math.min(1 - width, centerX - width / 2));
+  const y = Math.max(0, Math.min(1 - height, centerY - height / 2));
+
+  return clampRect({ x, y, width, height });
+}
+
+function getTypeAwareAiCrop(item = {}) {
+  const crop = normalizeItemCropBox(item.box);
+  if (!crop) return null;
+
+  const type = String(item.type || '').toLowerCase();
+  if (type === 'shoes') {
+    if (crop.width < 0.34 || crop.height < 0.14) {
+      return expandRect(crop, 0.5, 0.22);
+    }
+
+    return expandRect(crop, 0.42, 0.18);
+  }
+
+  return crop;
+}
+
 export function getItemPreviewCropRect(item = {}, index = 0, itemCount = 1) {
-  return normalizeItemCropBox(item.box) || getItemCropRect(item.type, index, itemCount);
+  return getTypeAwareAiCrop(item) || getItemCropRect(item.type, index, itemCount);
 }

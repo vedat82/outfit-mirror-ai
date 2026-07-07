@@ -271,6 +271,7 @@ Keep it concise. Max 3 suggestions. Write feedback and suggestions in ${response
 {"items":[{"type":"tshirt|shirt|jacket|pants|shoes","color":"black|white|gray|blue|navy|beige|brown|red|green|pink|cream","style":"casual|formal|sporty","season":"all|spring|summer|fall|winter","confidence":0-1,"box":{"x":0-1,"y":0-1,"width":0-1,"height":0-1}}]}
 Use closest allowed values. If there are multiple visible clothing items, include up to 4.
 For each item, include a normalized bounding box around only that clothing item, relative to the full image: x/y are top-left, width/height are item size. Make the box slightly generous, but avoid including unrelated garments when possible.
+For shoes, the box must include the full visible shoe or shoe pair, not only the heel, toe, laces, sole, or another small detail.
 Use confidence to reflect image clarity and item certainty.`;
 }
 
