@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { requireUserId } from '../services/userService.js';
+import { removeBackgroundFromImage } from '../services/backgroundRemovalService.js';
 
 const router = Router();
 
@@ -27,7 +28,7 @@ router.get('/', (req, res) => {
   res.json(listClothes.all(userId));
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const userId = requireUserId(req, res);
   if (!userId) return;
 
@@ -53,12 +54,40 @@ router.post('/', (req, res) => {
     return res.status(400).json({ message: 'Style must be casual, formal, sporty, or classic.' });
   }
 
-  const result = insertClothing.run({ userId, type, color, season, style, imageUrl: imageUrl || null });
+  const imageProcessing = imageUrl
+    ? await removeBackgroundFromImage(imageUrl)
+    : { imageUrl, changed: false, provider: 'none', reason: 'no-image', durationMs: 0 };
+  const finalImageUrl = imageProcessing.imageUrl || imageUrl;
+
+  if (imageUrl) {
+    console.log('[clothes] item image processing', {
+      userId,
+      type,
+      provider: imageProcessing.provider,
+      changed: imageProcessing.changed,
+      reason: imageProcessing.reason,
+      durationMs: imageProcessing.durationMs,
+      inputBytes: imageProcessing.inputBytes,
+      outputBytes: imageProcessing.outputBytes
+    });
+  }
+
+  const result = insertClothing.run({ userId, type, color, season, style, imageUrl: finalImageUrl || null });
   const item = db
     .prepare('SELECT id, user_id as userId, type, color, season, style, image_url as imageUrl, created_at as createdAt FROM clothes WHERE id = ? AND user_id = ?')
     .get(result.lastInsertRowid, userId);
 
-  return res.status(201).json(item);
+  return res.status(201).json({
+    ...item,
+    imageProcessing: {
+      provider: imageProcessing.provider,
+      changed: Boolean(imageProcessing.changed),
+      reason: imageProcessing.reason || '',
+      durationMs: imageProcessing.durationMs || 0,
+      inputBytes: imageProcessing.inputBytes || 0,
+      outputBytes: imageProcessing.outputBytes || 0
+    }
+  });
 });
 
 export default router;
