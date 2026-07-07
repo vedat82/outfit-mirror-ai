@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --import ./src/instrument.js src/index.js",
     "start": "node --import ./src/instrument.js src/index.js",
-    "test": "node --test"
+    "test": "node --test --test-concurrency=1"
   },
   "dependencies": {
     "@apple/app-store-server-library": "^3.1.0",
