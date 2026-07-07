@@ -164,6 +164,7 @@ export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceP
       status: 'success',
       requestUrl: url,
       usedFallback: Boolean(data.usedFallback),
+      metadata: data.metadata || null,
       imageBytes: requestImageDataUrl.length,
       originalImageBytes: imageDataUrl.length,
       requestBodyBytes,

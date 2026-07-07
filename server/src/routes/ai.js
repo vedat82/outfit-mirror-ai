@@ -1,5 +1,6 @@
 import express from 'express';
 import OpenAI from 'openai';
+import { fal } from '@fal-ai/client';
 import crypto from 'node:crypto';
 import { db } from '../db.js';
 import { getIsPremium, requireUserId } from '../services/userService.js';
@@ -101,6 +102,20 @@ function getOpenAIClient() {
   }
 
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
+
+function getFalKey() {
+  return String(process.env.FAL_KEY || process.env.FAL_API_KEY || '').trim();
+}
+
+function getSeeOnMeProvider() {
+  const provider = String(process.env.SEE_ON_ME_PROVIDER || 'openai').trim().toLowerCase();
+  return provider === 'fal' || provider === 'fal_fashn' || provider === 'fashn' ? 'fal_fashn' : 'openai';
+}
+
+function getSeeOnMeFallbackProvider() {
+  const provider = String(process.env.SEE_ON_ME_FALLBACK_PROVIDER || 'openai').trim().toLowerCase();
+  return provider === 'none' || provider === 'false' ? '' : 'openai';
 }
 
 function getResponseLanguage(language) {
@@ -360,6 +375,72 @@ function buildGenerationImages(personImageUrl, outfit) {
   };
 }
 
+function getFalCategoryForItem(item = {}) {
+  const type = String(item?.type || '').trim().toLowerCase();
+
+  if (['tshirt', 'shirt', 'jacket', 'long sleeve'].includes(type)) return 'tops';
+  if (type === 'pants') return 'bottoms';
+  return '';
+}
+
+function getFalGarmentCandidates(outfit = {}) {
+  const preferredSlot = String(process.env.SEE_ON_ME_FAL_GARMENT_SLOT || 'auto').trim().toLowerCase();
+  const slotOrder = preferredSlot && preferredSlot !== 'auto'
+    ? [preferredSlot, 'top', 'bottom', 'jacket']
+    : ['top', 'bottom', 'jacket'];
+
+  return slotOrder
+    .map((slot) => ({ slot, item: outfit?.[slot] }))
+    .filter(({ item }) => String(item?.imageUrl || '').trim().startsWith('data:image/'))
+    .map(({ slot, item }) => ({
+      slot,
+      item,
+      imageUrl: String(item.imageUrl).trim(),
+      category: getFalCategoryForItem(item)
+    }))
+    .filter((candidate) => candidate.category);
+}
+
+async function imageUrlToDataUrl(imageUrl, timeoutMs) {
+  if (String(imageUrl || '').startsWith('data:image/')) return imageUrl;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(imageUrl, { signal: controller.signal });
+    if (!response.ok) {
+      const error = new Error(`Failed to download generated image: ${response.status}`);
+      error.statusCode = response.status;
+      throw error;
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/png';
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function withTimeout(promise, timeoutMs, message) {
+  let timeout;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeout = setTimeout(() => {
+      const error = new Error(message);
+      error.name = 'AbortError';
+      error.code = 'ETIMEDOUT';
+      reject(error);
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function getSeeOnMeGenerationModel() {
   const configuredModel = process.env.OPENAI_IMAGE_MODEL || process.env.OPENAI_IMAGE_ROUTER_MODEL || modelByTier.pro;
 
@@ -415,9 +496,42 @@ function classifyOpenAIError(error) {
   return { category: 'unknown', messageKey: seeOnMeGenerationFailedMessageKey, safeCode: 'AI_UNKNOWN_FAILURE' };
 }
 
-function logOpenAIError(error, context = {}) {
-  const classification = classifyOpenAIError(error);
-  console.error('[ai/see-on-me] OpenAI generation error', {
+function classifyFalError(error) {
+  const status = error?.status || error?.statusCode || error?.response?.status;
+  const code = String(error?.code || error?.error?.code || '').toLowerCase();
+  const message = String(error?.message || error?.error?.message || '').toLowerCase();
+
+  if (status === 401 || status === 403 || code.includes('auth') || message.includes('unauthorized') || message.includes('forbidden')) {
+    return { category: 'auth', messageKey: seeOnMeAuthMessageKey, safeCode: 'AI_AUTH_UNAVAILABLE' };
+  }
+
+  if (status === 429 || code.includes('rate') || message.includes('quota') || message.includes('billing') || message.includes('insufficient')) {
+    return { category: 'quota', messageKey: seeOnMeQuotaMessageKey, safeCode: 'AI_CAPACITY_UNAVAILABLE' };
+  }
+
+  if (error?.name === 'AbortError' || code === 'etimedout' || message.includes('timeout') || message.includes('timed out')) {
+    return { category: 'timeout', messageKey: seeOnMeTimeoutMessageKey, safeCode: 'AI_TIMEOUT' };
+  }
+
+  if (status === 400 || message.includes('invalid') || message.includes('unsupported')) {
+    return { category: 'invalid_request', messageKey: seeOnMeInvalidRequestMessageKey, safeCode: 'AI_INVALID_REQUEST' };
+  }
+
+  if (status >= 500 || message.includes('unavailable')) {
+    return { category: 'service_unavailable', messageKey: seeOnMeTemporaryMessageKey, safeCode: 'AI_SERVICE_UNAVAILABLE' };
+  }
+
+  return { category: 'unknown', messageKey: seeOnMeGenerationFailedMessageKey, safeCode: 'AI_UNKNOWN_FAILURE' };
+}
+
+function classifyProviderError(error, provider = 'openai') {
+  return provider === 'fal_fashn' ? classifyFalError(error) : classifyOpenAIError(error);
+}
+
+function logProviderError(error, context = {}) {
+  const provider = context.provider || 'openai';
+  const classification = classifyProviderError(error, provider);
+  console.error(`[ai/see-on-me] ${provider} generation error`, {
     ...context,
     category: classification.category,
     name: error?.name,
@@ -776,6 +890,118 @@ async function generateSeeOnMePreview({ client, imageDataUrl, outfit, appearance
   };
 }
 
+async function generateSeeOnMePreviewWithFal({ imageDataUrl, outfit }) {
+  const falKey = getFalKey();
+  if (!falKey) {
+    const error = new Error('FAL_KEY is missing.');
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const garmentCandidates = getFalGarmentCandidates(outfit);
+  const selectedGarment = garmentCandidates[0];
+
+  if (!selectedGarment) {
+    const error = new Error('FASHN requires a wardrobe image for a top, bottom, or jacket.');
+    error.statusCode = 400;
+    error.code = 'NO_FAL_GARMENT_IMAGE';
+    throw error;
+  }
+
+  const model = process.env.SEE_ON_ME_FAL_MODEL || 'fal-ai/fashn/tryon/v1.6';
+  const mode = String(process.env.SEE_ON_ME_FAL_MODE || 'performance').trim().toLowerCase();
+  const outputFormat = String(process.env.SEE_ON_ME_FAL_OUTPUT_FORMAT || 'jpeg').trim().toLowerCase();
+  const timeoutMs = Number(process.env.SEE_ON_ME_FAL_TIMEOUT_MS || 90000);
+  const input = {
+    model_image: imageDataUrl,
+    garment_image: selectedGarment.imageUrl,
+    category: selectedGarment.category,
+    mode: ['performance', 'balanced', 'quality'].includes(mode) ? mode : 'performance',
+    garment_photo_type: 'auto',
+    moderation_level: 'permissive',
+    num_samples: 1,
+    segmentation_free: true,
+    sync_mode: true,
+    output_format: outputFormat === 'png' ? 'png' : 'jpeg'
+  };
+
+  fal.config({ credentials: falKey });
+
+  console.log('[ai/see-on-me] fal generation start', {
+    model,
+    timeoutMs,
+    slot: selectedGarment.slot,
+    category: selectedGarment.category,
+    mode: input.mode,
+    outputFormat: input.output_format,
+    personBytes: byteLength(imageDataUrl),
+    garmentBytes: byteLength(selectedGarment.imageUrl)
+  });
+
+  const startedAt = Date.now();
+  const result = await withTimeout(
+    fal.subscribe(model, { input, logs: false }),
+    timeoutMs,
+    'FAL generation timed out.'
+  );
+  const durationMs = Date.now() - startedAt;
+  const outputImageUrl = result?.data?.images?.[0]?.url || result?.images?.[0]?.url || '';
+
+  console.log('[ai/see-on-me] fal generation response', {
+    model,
+    durationMs,
+    requestId: result?.requestId || result?.request_id || '',
+    imageCount: result?.data?.images?.length || result?.images?.length || 0,
+    hasOutputImage: Boolean(outputImageUrl),
+    slot: selectedGarment.slot,
+    category: selectedGarment.category
+  });
+
+  if (!outputImageUrl) {
+    const error = new Error('FAL response did not include an output image.');
+    error.statusCode = 502;
+    throw error;
+  }
+
+  const previewImageUrl = await imageUrlToDataUrl(outputImageUrl, Number(process.env.SEE_ON_ME_FAL_DOWNLOAD_TIMEOUT_MS || 30000));
+
+  return {
+    previewImageUrl,
+    usedFallback: false,
+    messageKey: '',
+    message: '',
+    generationDiagnostics: {
+      provider: 'fal_fashn',
+      model,
+      mode: input.mode,
+      durationMs,
+      selectedGarmentSlot: selectedGarment.slot,
+      selectedGarmentCategory: selectedGarment.category,
+      requestId: result?.requestId || result?.request_id || '',
+      imageCount: 2,
+      payloadBytes: byteLength(imageDataUrl) + byteLength(selectedGarment.imageUrl),
+      skippedImages: getOutfitReferenceImages(outfit)
+        .filter((imageUrl) => imageUrl !== selectedGarment.imageUrl)
+        .map((imageUrl, index) => ({ label: `wardrobe-skipped-${index + 1}`, reason: 'fal-single-garment-pilot', bytes: byteLength(imageUrl) }))
+    }
+  };
+}
+
+async function generateSeeOnMePreviewWithProvider({ provider, client, imageDataUrl, outfit, appearanceProfile, preferences, language }) {
+  if (provider === 'fal_fashn') {
+    return generateSeeOnMePreviewWithFal({ imageDataUrl, outfit });
+  }
+
+  return generateSeeOnMePreview({
+    client,
+    imageDataUrl,
+    outfit,
+    appearanceProfile,
+    preferences,
+    language
+  });
+}
+
 async function analyzeWithOpenAI({ userId, accessTier, mode, imageDataUrl, language, appearanceProfile, preferences }) {
   const client = getOpenAIClient();
 
@@ -986,9 +1212,12 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
   }
 
   const client = getOpenAIClient();
+  const selectedProvider = getSeeOnMeProvider();
+  const fallbackProvider = selectedProvider === 'openai' ? '' : getSeeOnMeFallbackProvider();
   activeSeeOnMeGenerations.set(userId, {
     startedAt: Date.now(),
-    accessTier
+    accessTier,
+    provider: selectedProvider
   });
 
   try {
@@ -1040,35 +1269,86 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
 
     let preview;
     let generationDurationMs = 0;
+    let providerUsed = selectedProvider;
+    let primaryProviderError = null;
 
     try {
       const generationStartedAt = Date.now();
-      preview = await generateSeeOnMePreview({
-        client,
-        imageDataUrl,
-        outfit,
-        appearanceProfile,
-        preferences,
-        language
-      });
+      try {
+        preview = await generateSeeOnMePreviewWithProvider({
+          provider: selectedProvider,
+          client,
+          imageDataUrl,
+          outfit,
+          appearanceProfile,
+          preferences,
+          language
+        });
+      } catch (providerError) {
+        primaryProviderError = providerError;
+        const primaryClassification = logProviderError(providerError, {
+          provider: selectedProvider,
+          accessTier,
+          userId,
+          route: '/ai/see-on-me',
+          fallbackProvider
+        });
+
+        if (!fallbackProvider || fallbackProvider === selectedProvider) {
+          providerError.messageKey = primaryClassification.messageKey;
+          providerError.safeCode = primaryClassification.safeCode;
+          providerError.category = primaryClassification.category;
+          throw providerError;
+        }
+
+        console.warn('[ai/see-on-me] provider fallback start', {
+          userId,
+          accessTier,
+          fromProvider: selectedProvider,
+          toProvider: fallbackProvider,
+          reason: primaryClassification.category
+        });
+        providerUsed = fallbackProvider;
+        preview = await generateSeeOnMePreviewWithProvider({
+          provider: fallbackProvider,
+          client,
+          imageDataUrl,
+          outfit,
+          appearanceProfile,
+          preferences,
+          language
+        });
+      }
       generationDurationMs = Date.now() - generationStartedAt;
       recordAiUsage({ userId, accessTier, taskType: 'see-on-me-generation', modelTier: 'pro' });
       console.log('[ai/see-on-me] generation success', {
         userId,
         accessTier,
+        requestedProvider: selectedProvider,
+        providerUsed,
         timings: {
           validationDurationMs,
           generationDurationMs,
-          openAiGenerationDurationMs: preview.generationDiagnostics?.durationMs || generationDurationMs,
+          providerGenerationDurationMs: preview.generationDiagnostics?.durationMs || generationDurationMs,
+          openAiGenerationDurationMs: providerUsed === 'openai' ? preview.generationDiagnostics?.durationMs || generationDurationMs : undefined,
+          falGenerationDurationMs: providerUsed === 'fal_fashn' ? preview.generationDiagnostics?.durationMs || generationDurationMs : undefined,
           totalDurationMs: Date.now() - requestStartedAt
         },
-        generationDiagnostics: preview.generationDiagnostics || null
+        generationDiagnostics: preview.generationDiagnostics || null,
+        primaryProviderError: primaryProviderError ? {
+          provider: selectedProvider,
+          message: primaryProviderError.message,
+          code: primaryProviderError.code || primaryProviderError.safeCode || ''
+        } : null
       });
     } catch (generationError) {
-      const classification = logOpenAIError(generationError, {
+      const classification = logProviderError(generationError, {
+        provider: providerUsed,
         accessTier,
         userId,
-        route: '/ai/see-on-me'
+        route: '/ai/see-on-me',
+        requestedProvider: selectedProvider,
+        fallbackProvider
       });
       captureBackendError(generationError, req, {
         area: 'ai-see-on-me-generation',
@@ -1088,7 +1368,9 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
     const timings = {
       validationDurationMs,
       generationDurationMs,
-      openAiGenerationDurationMs: preview.generationDiagnostics?.durationMs || generationDurationMs,
+      providerGenerationDurationMs: preview.generationDiagnostics?.durationMs || generationDurationMs,
+      openAiGenerationDurationMs: providerUsed === 'openai' ? preview.generationDiagnostics?.durationMs || generationDurationMs : undefined,
+      falGenerationDurationMs: providerUsed === 'fal_fashn' ? preview.generationDiagnostics?.durationMs || generationDurationMs : undefined,
       totalDurationMs: Date.now() - requestStartedAt
     };
     const responsePayload = {
@@ -1099,9 +1381,17 @@ router.post('/see-on-me', seeOnMeIpRateLimit, seeOnMeRateLimit, async (req, res)
       metadata: {
         modelTier: 'pro',
         validationModelTier: 'nano',
+        requestedProvider: selectedProvider,
+        provider: providerUsed,
+        fallbackUsed: providerUsed !== selectedProvider,
         generatedAt: new Date().toISOString(),
         timings,
-        generationDiagnostics: preview.generationDiagnostics || null
+        generationDiagnostics: preview.generationDiagnostics || null,
+        primaryProviderError: primaryProviderError ? {
+          provider: selectedProvider,
+          message: primaryProviderError.message,
+          code: primaryProviderError.code || primaryProviderError.safeCode || ''
+        } : null
       }
     };
     setCachedPreview(cacheKey, responsePayload);

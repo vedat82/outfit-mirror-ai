@@ -1952,12 +1952,15 @@ function DiagnosticsCard() {
     ['See On Me', seeOnMeDebug ? `${seeOnMeDebug.status || '-'} / ${seeOnMeDebug.messageKey || seeOnMeDebug.message || '-'}` : '-'],
     ['See status', seeOnMeDebug?.httpStatus || '-'],
     ['See code', seeOnMeDebug?.safeCode || seeOnMeDebug?.category || '-'],
+    ['See provider', seeOnMeDebug?.metadata?.provider || seeOnMeDebug?.metadata?.generationDiagnostics?.provider || '-'],
     ['See body bytes', seeOnMeDebug?.requestBodyBytes || '-'],
     ['See image bytes', seeOnMeDebug?.imageBytes || '-'],
     ['See prepare ms', seeOnMeDebug?.timings?.prepareDurationMs || '-'],
     ['See total ms', seeOnMeDebug?.timings?.totalDurationMs || '-'],
     ['See request ms', seeOnMeDebug?.timings?.requestDurationMs || '-'],
     ['See server ms', seeOnMeDebug?.timings?.server?.totalDurationMs || '-'],
+    ['See provider ms', seeOnMeDebug?.timings?.server?.providerGenerationDurationMs || '-'],
+    ['See FAL ms', seeOnMeDebug?.timings?.server?.falGenerationDurationMs || '-'],
     ['See AI ms', seeOnMeDebug?.timings?.server?.openAiGenerationDurationMs || seeOnMeDebug?.timings?.server?.generationDurationMs || '-']
   ];
 
