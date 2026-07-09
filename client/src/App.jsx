@@ -2336,7 +2336,11 @@ export default function App() {
     });
 
     try {
-      const recentOutfits = outfitHistory.slice(0, 8).map(getOutfitSignature).filter(Boolean);
+      const currentSignature = getOutfitSignature(suggestion);
+      const recentOutfits = Array.from(new Set([
+        currentSignature,
+        ...outfitHistory.slice(0, 8).map(getOutfitSignature)
+      ].filter(Boolean)));
       const data = await getSuggestion(season, occasion, suggestionPreferences, recentOutfits);
       if (recentOutfits.includes(getOutfitSignature(data))) {
         setMessageTone('info');

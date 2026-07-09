@@ -597,7 +597,13 @@ export function suggestOutfit(clothes, season = 'all', weather = null, preferenc
 
   combinations.sort((a, b) => b.score - a.score);
 
-  const best = combinations[0];
+  const freshCombinations = combinations.filter((combination) => !recentOutfits.includes(getOutfitSignature(
+    combination.top,
+    combination.bottom,
+    combination.shoes,
+    combination.jacket
+  )));
+  const best = freshCombinations[0] || combinations[0];
 
   return {
     outfit: {

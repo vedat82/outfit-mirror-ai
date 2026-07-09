@@ -438,6 +438,30 @@ test('premium logic uses liked history without repeating the exact same outfit',
   assert.equal(result.outfit.shoes.color, 'gray');
 });
 
+test('avoids recently generated outfits when alternatives exist', () => {
+  const result = suggestOutfit(
+    [
+      { id: 1, type: 'tshirt', color: 'black', season: 'all' },
+      { id: 2, type: 'shirt', color: 'blue', season: 'all' },
+      { id: 3, type: 'pants', color: 'white', season: 'all' },
+      { id: 4, type: 'pants', color: 'beige', season: 'all' },
+      { id: 5, type: 'shoes', color: 'gray', season: 'all' }
+    ],
+    'all',
+    { temperatureC: 18, rainy: false },
+    { preferredColors: [], preferredStyle: 'casual' },
+    [],
+    {
+      recentOutfits: ['tshirt:black|pants:white|shoes:gray|none']
+    }
+  );
+
+  assert.notEqual(
+    `${result.outfit.top.type}:${result.outfit.top.color}|${result.outfit.bottom.type}:${result.outfit.bottom.color}|${result.outfit.shoes.type}:${result.outfit.shoes.color}|${result.outfit.jacket ? `${result.outfit.jacket.type}:${result.outfit.jacket.color}` : 'none'}`,
+    'tshirt:black|pants:white|shoes:gray|none'
+  );
+});
+
 test('premium logic weights preferred colors more strongly', () => {
   const freeResult = suggestOutfit(
     [
