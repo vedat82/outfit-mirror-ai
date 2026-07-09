@@ -149,6 +149,16 @@ html[data-form-focused="true"] .bottom-tabbar {
   animation: see-on-me-reveal 220ms ease-out both;
 }
 
+.see-on-me-job-open {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+}
+
 .see-on-me-job-toast strong,
 .see-on-me-job-toast small {
   display: block;
@@ -165,13 +175,36 @@ html[data-form-focused="true"] .bottom-tabbar {
   font-weight: 700;
 }
 
-.see-on-me-job-toast svg {
+.see-on-me-job-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.see-on-me-job-actions > svg {
   width: 22px;
   color: #0f766e;
 }
 
-.see-on-me-job-toast.is-generating svg {
+.see-on-me-job-toast.is-generating .see-on-me-job-actions > svg {
   animation: see-on-me-pulse 1.8s ease-in-out infinite;
+}
+
+.see-on-me-job-dismiss {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid rgb(15 23 42 / 0.08);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.72);
+  color: var(--aura-muted);
+}
+
+.see-on-me-job-dismiss svg {
+  width: 16px;
+  height: 16px;
 }
 
 .see-on-me-job-toast.is-error {

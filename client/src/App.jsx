@@ -2748,6 +2748,9 @@ export default function App() {
   function openSeeOnMePanel() {
     setActiveStudioTool('see-on-me');
     setActivePage('studio');
+    setSeeOnMeJob((current) => current.status === 'ready' || current.status === 'error'
+      ? { status: 'idle', cached: false, updatedAt: Date.now() }
+      : current);
   }
 
   function handleSeeOnMeGenerationStatusChange(nextStatus) {
@@ -2756,6 +2759,11 @@ export default function App() {
       ...nextStatus,
       updatedAt: Date.now()
     }));
+  }
+
+  function dismissSeeOnMeJobNotice(event) {
+    event?.stopPropagation();
+    setSeeOnMeJob({ status: 'idle', cached: false, updatedAt: Date.now() });
   }
 
   async function handleOutfitFeedback(rating) {
@@ -2910,13 +2918,23 @@ export default function App() {
         </div>
 
         {shouldShowSeeOnMeJobNotice ? (
-          <button type="button" onClick={openSeeOnMePanel} className={`see-on-me-job-toast is-${seeOnMeJob.status}`} aria-live="polite">
-            <span>
+          <div className={`see-on-me-job-toast is-${seeOnMeJob.status}`} aria-live="polite">
+            <button type="button" onClick={openSeeOnMePanel} className="see-on-me-job-open">
               <strong>{t(seeOnMeJobMessageKey)}</strong>
               <small>{seeOnMeJob.status === 'generating' ? t('seeOnMe.backgroundHint') : t('seeOnMe.openPreview')}</small>
+            </button>
+            <span className="see-on-me-job-actions">
+              <SparklesIcon aria-hidden="true" />
+              <button
+                type="button"
+                className="see-on-me-job-dismiss"
+                aria-label={t('buttons.close')}
+                onClick={dismissSeeOnMeJobNotice}
+              >
+                <XMarkIcon aria-hidden="true" />
+              </button>
             </span>
-            <SparklesIcon aria-hidden="true" />
-          </button>
+          </div>
         ) : null}
 
         <nav className="bottom-tabbar aura-tabbar">
