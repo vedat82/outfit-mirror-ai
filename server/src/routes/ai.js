@@ -276,10 +276,10 @@ function buildPrompt(mode, language, appearanceProfile, preferences) {
 
   if (mode === 'outfit') {
     return `Analyze this outfit photo. Return only JSON:
-{"rating":1-10,"feedback":"short sentence","suggestions":["short suggestion","short suggestion"],"confidence":0-1}
+{"rating":1-10,"feedback":"warm, useful style feedback in 1 sentence","suggestions":["specific improvement with a short reason","specific improvement with a short reason"],"confidence":0-1}
 ${buildAppearanceContext(appearanceProfile, preferences)}
 Use body type, height, gender, and style goal only for supportive fit and proportion advice. Avoid stereotypes. Keep it inclusive.
-Keep it concise. Max 3 suggestions. Write feedback and suggestions in ${responseLanguage}. Use confidence to reflect image clarity.`;
+Keep it concise but not generic. Max 3 suggestions. Each suggestion should explain why it helps in one natural sentence. Write feedback and suggestions in ${responseLanguage}. Use confidence to reflect image clarity.`;
   }
 
   return `Analyze clothing in this image. Return only JSON:

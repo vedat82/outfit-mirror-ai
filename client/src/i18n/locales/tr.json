@@ -64,7 +64,7 @@
   },
   "home": {
     "title": "Bugün",
-    "description": "Kullanım amacı, sezon ve gardırobuna göre net bir kombin önerisi.",
+    "description": "Bugün ne giymek istediğine birlikte karar verelim.",
     "dailyStylist": "GÜNLÜK STİLİST",
     "stylistLabel": "STİL ÖNERİSİ",
     "primaryCta": "Kombin öner",
@@ -122,7 +122,7 @@
     "improve": {
       "action": "Gardırobumu iyileştir",
       "title": "Gardırop önerileri",
-      "description": "Eksik temel parçaları ve kombinlerini güçlendirecek akıllı eklemeleri gösterir.",
+      "description": "Dolabındaki parçaları okuyup eksik kalan güçlü tamamlayıcıları birlikte bulalım.",
       "alternatives": "Alternatif üret",
       "more": "Daha fazla",
       "empty": "Gardırobun temel parçalar açısından dengeli görünüyor. Daha net öneriler için birkaç kombin dene.",
@@ -148,15 +148,15 @@
         "darkSneakers": "Koyu sneaker"
       },
       "reasons": {
-        "neutralShoes": "Gardırobunda çok yönlü nötr ayakkabı eksik; bu parça çoğu kombini kolayca tamamlar.",
-        "smartCasual": "Smart casual ve günlük kombinlerini daha dengeli hale getirir.",
-        "darkBottoms": "Koyu bir alt parça üstlerle daha güçlü kontrast kurmanı sağlar.",
-        "layering": "Katmanlı ve daha yapılı kombinler için iyi bir tamamlayıcı olur.",
-        "formalOccasions": "İş, düğün, nişan veya resmi etkinlik kombinlerini güçlendirir.",
-        "workLooks": "İş ve klasik kombinlerde temiz, güvenli bir temel parça sağlar.",
-        "warmWeather": "Sıcak ve rahat günlük kombinlerde gardırobunu daha esnek yapar.",
-        "preferredColors": "Favori renklerinle daha uyumlu kombin seçenekleri oluşturur.",
-        "rainReady": "Yağmurlu günlerde ve koyu kombinlerde daha güvenli bir ayakkabı alternatifi sağlar."
+        "neutralShoes": "Nötr bir ayakkabı çoğu kombini hızlıca toparlar. Özellikle jean, chino ve açık renk üstlerle daha zahmetsiz günlük seçenekler açar.",
+        "smartCasual": "Günlük parçalarını biraz daha derli toplu gösterir. Kahve, ofis sonrası buluşma veya akşam yemeği gibi arada kalan planlarda işini kolaylaştırır.",
+        "darkBottoms": "Koyu bir alt parça üstlerle daha net kontrast kurar. Bu sayede kombin daha dengeli görünür ve aynı üstleri farklı havalarda kullanabilirsin.",
+        "layering": "Katman eklemek görünümü daha düşünülmüş gösterir. Özellikle serin havalarda tek parça hissini kırıp daha stil sahibi bir siluet verir.",
+        "formalOccasions": "Resmi planlarda kombini bir anda daha güvenli hale getirir. İş, düğün, nişan veya özel davetlerde gardırobunun eksik kalmasını önler.",
+        "workLooks": "Temiz ve risksiz bir temel parça sağlar. Sabah hızlı hazırlanırken bile düzenli ve klasik bir görünüm kurmanı kolaylaştırır.",
+        "warmWeather": "Sıcak günlerde daha hafif ve ferah kombinler kurmanı sağlar. Dolabındaki parçaları yazlık planlara daha rahat taşır.",
+        "preferredColors": "Sevdiğin renklerin etrafında daha fazla kombin kurmana yardım eder. Böylece dolap sana daha tanıdık ve kullanışlı hissettirir.",
+        "rainReady": "Koyu ve pratik bir ayakkabı yağmurlu günlerde daha güvenli olur. Aynı zamanda koyu kombinlere daha sakin bir bitiş verir."
       }
     }
   },
@@ -514,11 +514,11 @@
       "balanced": "Genel denge temiz ve kullanışlı."
     },
     "suggestions": {
-      "tryBottom": "{{item}} yerine daha iyi bir alt seçimi olabilir.",
-      "tryShoes": "{{item}} bu kombine daha iyi uyabilir.",
-      "tryTop": "{{item}} ile üst-alt dengesi daha iyi olabilir.",
-      "wardrobeLooksFine": "Gardırobundaki mevcut parçalarla bu kombin zaten dengeli görünüyor.",
-      "addWardrobe": "Daha iyi alternatifler önermek için gardırobuna birkaç parça ekle."
+      "tryBottom": "{{item}} ile alt kısmı daha dengeli gösterebilirsin; özellikle renk kontrastı daha temiz durur.",
+      "tryShoes": "{{item}} bu kombini daha iyi bağlayabilir; ayakkabı tonu görünümün genel havasını sakinleştirir.",
+      "tryTop": "{{item}} ile üst-alt oranı daha dengeli olabilir; kombinin odağı daha net görünür.",
+      "wardrobeLooksFine": "Gardırobundaki mevcut parçalarla bu kombin zaten dengeli görünüyor. Küçük aksesuar veya ayakkabı değişimiyle havasını kolayca yenileyebilirsin.",
+      "addWardrobe": "Daha isabetli alternatifler önermek için gardırobuna birkaç temel parça daha ekle. Özellikle ayakkabı ve nötr üstler önerileri güçlendirir."
     }
   },
   "seeOnMe": {

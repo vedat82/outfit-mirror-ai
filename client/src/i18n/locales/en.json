@@ -64,7 +64,7 @@
   },
   "home": {
     "title": "Today",
-    "description": "A clear outfit suggestion based on occasion, season, and your wardrobe.",
+    "description": "Let’s decide what you’ll wear today together.",
     "dailyStylist": "DAILY STYLIST",
     "stylistLabel": "STYLE SUGGESTION",
     "primaryCta": "Suggest outfit",
@@ -122,7 +122,7 @@
     "improve": {
       "action": "Improve My Wardrobe",
       "title": "Wardrobe recommendations",
-      "description": "Highlights missing essentials and smart additions that would make your outfits stronger.",
+      "description": "I’ll read your wardrobe and point out the missing pieces that would unlock better looks.",
       "alternatives": "Generate alternatives",
       "more": "More",
       "empty": "Your wardrobe looks balanced across the basics. Try a few outfit suggestions for more specific recommendations.",
@@ -148,15 +148,15 @@
         "darkSneakers": "Dark sneakers"
       },
       "reasons": {
-        "neutralShoes": "Your wardrobe lacks versatile neutral shoes; this would complete many outfits easily.",
-        "smartCasual": "This would improve your smart casual and everyday outfits.",
-        "darkBottoms": "A dark bottom would create stronger contrast with more tops.",
-        "layering": "This would help build more structured and layered outfits.",
-        "formalOccasions": "This would strengthen work, wedding, engagement, and formal event outfits.",
-        "workLooks": "This gives you a clean and reliable base for work and classic looks.",
-        "warmWeather": "This makes warm-weather casual outfits easier and more flexible.",
-        "preferredColors": "This adds more outfit options around your preferred colors.",
-        "rainReady": "This gives you a safer shoe option for rainy days and darker outfits."
+        "neutralShoes": "A neutral shoe finishes many outfits with very little effort. It works especially well with denim, chinos, and light tops.",
+        "smartCasual": "This makes casual pieces feel a little more polished. It is useful for coffee plans, after-work meetups, and relaxed dinners.",
+        "darkBottoms": "A dark bottom creates cleaner contrast with more tops. It also helps the same shirts feel useful in more combinations.",
+        "layering": "A layer makes the outfit feel more intentional. It adds structure on cooler days without making the look complicated.",
+        "formalOccasions": "This gives you a safer option for dressed-up plans. Work, weddings, engagements, and formal events become easier to style.",
+        "workLooks": "This creates a clean base you can rely on. It helps you look put together even when you need to get ready quickly.",
+        "warmWeather": "This makes warm-weather outfits lighter and easier. It helps your wardrobe feel more flexible for summer plans.",
+        "preferredColors": "This gives you more combinations around colors you already like. Your wardrobe will feel more familiar and easier to use.",
+        "rainReady": "A darker practical shoe is safer on rainy days. It also gives dark outfits a calmer, more grounded finish."
       }
     }
   },
@@ -514,11 +514,11 @@
       "balanced": "The overall balance looks clean and wearable."
     },
     "suggestions": {
-      "tryBottom": "Try your {{item}} instead.",
-      "tryShoes": "Your {{item}} would match better.",
-      "tryTop": "Your {{item}} could improve the top-bottom balance.",
-      "wardrobeLooksFine": "This outfit already looks balanced with your current wardrobe.",
-      "addWardrobe": "Add a few more wardrobe items to get better alternatives."
+      "tryBottom": "Try your {{item}} for a cleaner lower-half balance; the color contrast should feel more intentional.",
+      "tryShoes": "Your {{item}} would tie this look together better and make the overall tone feel calmer.",
+      "tryTop": "Your {{item}} could improve the top-bottom proportion and give the outfit a clearer focal point.",
+      "wardrobeLooksFine": "This outfit already looks balanced with your current wardrobe. A small shoe or accessory change could still refresh the mood.",
+      "addWardrobe": "Add a few more wardrobe basics for sharper alternatives. Shoes and neutral tops will improve the suggestions most."
     }
   },
   "seeOnMe": {
