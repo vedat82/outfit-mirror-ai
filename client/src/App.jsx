@@ -1965,6 +1965,10 @@ function DiagnosticsCard() {
   );
 }
 
+function shouldShowDiagnostics() {
+  return import.meta.env.DEV || import.meta.env.VITE_SHOW_DIAGNOSTICS === 'true';
+}
+
 function LegacyProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatform, isPaymentLoading, paywallRequestId, savedLooks, isLoadingSavedLooks, onStartPremium, onRestorePurchases, onCancelPremiumFlow, onSavePreferences, onSaveAppearance, onResetPremiumState }) {
   const { t } = useI18n();
   const [showPaywall, setShowPaywall] = useState(false);
@@ -2165,7 +2169,7 @@ function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatf
       {activeSection === 'help' ? (
         <div className="grid gap-3">
           <section className="profile-detail-card"><QuestionMarkCircleIcon aria-hidden="true" /><div><strong>{t('profile2.help')}</strong><p>{t('profile2.helpDescription')}</p></div></section>
-          <DiagnosticsCard />
+          {shouldShowDiagnostics() ? <DiagnosticsCard /> : null}
         </div>
       ) : null}
 
