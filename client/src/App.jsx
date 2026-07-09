@@ -462,14 +462,18 @@ function OutfitItemMini({ label, item }) {
   if (!item) return null;
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+    <div className="outfit-mini-card">
       {item.imageUrl ? (
-        <img src={item.imageUrl} alt={`${optionLabel('colors', item.color)} ${optionLabel('types', item.type)}`} className="h-24 w-full object-cover" loading="lazy" decoding="async" />
-      ) : null}
-      <div className="p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-        <p className="mt-1 truncate text-base font-semibold capitalize text-slate-950">{optionLabel('colors', item.color)}</p>
-        <p className="truncate text-xs capitalize text-slate-500">{optionLabel('types', item.type)}</p>
+        <img src={item.imageUrl} alt={`${optionLabel('colors', item.color)} ${optionLabel('types', item.type)}`} className="outfit-mini-image" loading="lazy" decoding="async" />
+      ) : (
+        <div className="outfit-mini-placeholder" style={{ '--item-color': getColorHex(item.color) }}>
+          <span>{optionLabel('types', item.type).slice(0, 1)}</span>
+        </div>
+      )}
+      <div className="outfit-mini-body">
+        <p>{label}</p>
+        <strong>{optionLabel('colors', item.color)}</strong>
+        <small>{optionLabel('types', item.type)}</small>
       </div>
     </div>
   );
@@ -1356,12 +1360,12 @@ function SeeOnMeOutfitPreview({ suggestion }) {
   const { t } = useI18n();
 
   return (
-    <div className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <h4 className="text-sm font-semibold text-slate-950">{t('seeOnMe.outfitTitle')}</h4>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">{t('home.seeOnMeCta')}</span>
+    <div className="see-on-me-outfit-preview">
+      <div className="see-on-me-outfit-heading">
+        <h4>{t('seeOnMe.outfitTitle')}</h4>
+        <span>{t('home.seeOnMeCta')}</span>
       </div>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="see-on-me-outfit-grid">
         <OutfitItemMini label={t('outfit.labels.top')} item={suggestion.top} />
         <OutfitItemMini label={t('outfit.labels.bottom')} item={suggestion.bottom} />
         <OutfitItemMini label={t('outfit.labels.shoes')} item={suggestion.shoes} />
@@ -1382,6 +1386,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   const [validationWarning, setValidationWarning] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
+  const [isRefreshingOutfit, setIsRefreshingOutfit] = useState(false);
   const [savedLookId, setSavedLookId] = useState('');
   const seeOnMeLibraryInputRef = useRef(null);
   const seeOnMeCameraInputRef = useRef(null);
@@ -1568,8 +1573,9 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   }
 
   async function handleGenerateNewOutfitFromSeeOnMe() {
-    if (isGenerating) return;
+    if (isGenerating || isRefreshingOutfit) return;
 
+    setIsRefreshingOutfit(true);
     setPreview(null);
     setState('idle');
     onGenerationStatusChange?.({ status: 'idle' });
@@ -1577,7 +1583,11 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     setServiceError(null);
     setValidationWarning(null);
     setSavedLookId('');
-    await onGenerateNewOutfit?.();
+    try {
+      await onGenerateNewOutfit?.();
+    } finally {
+      setIsRefreshingOutfit(false);
+    }
   }
 
   async function handleSaveLook() {
@@ -1619,8 +1629,8 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
       <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
         <p className="text-sm font-semibold text-slate-900">{t('seeOnMe.needOutfitTitle')}</p>
         <p className="mt-2 text-sm text-slate-500">{t('seeOnMe.needOutfit')}</p>
-        <button type="button" onClick={onGenerateNewOutfit} className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
-          {t('seeOnMe.generateNewOutfit')}
+        <button type="button" onClick={handleGenerateNewOutfitFromSeeOnMe} disabled={isRefreshingOutfit} className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white disabled:bg-slate-400">
+          {isRefreshingOutfit ? t('seeOnMe.generating') : t('seeOnMe.generateNewOutfit')}
         </button>
       </div>
     );
@@ -1675,8 +1685,8 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
         </div>
       ) : null}
 
-      <button type="button" onClick={handleGenerateNewOutfitFromSeeOnMe} disabled={isGenerating} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
-        {t('seeOnMe.generateNewOutfit')}
+      <button type="button" onClick={handleGenerateNewOutfitFromSeeOnMe} disabled={isGenerating || isRefreshingOutfit} className="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm disabled:cursor-not-allowed disabled:opacity-60">
+        {isRefreshingOutfit ? t('seeOnMe.generating') : t('seeOnMe.generateNewOutfit')}
       </button>
 
       {isGenerating ? <SeeOnMeLoadingState /> : null}
@@ -2328,7 +2338,6 @@ export default function App() {
     setMessage('');
     setMessageTone('info');
     setIsSuggesting(true);
-    setSuggestion(null);
     addMonitoringBreadcrumb('outfit', 'suggest:start', {
       occasion,
       season,
@@ -2358,7 +2367,7 @@ export default function App() {
         season,
         accessTier: accessStatus.tier
       });
-      setSuggestion(null);
+      setSuggestion((current) => current || null);
       setMessageTone('error');
       setMessage(error.message.startsWith('messages.') ? error.message : 'messages.suggestionUnavailable');
     } finally {

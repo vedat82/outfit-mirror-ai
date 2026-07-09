@@ -653,6 +653,121 @@ html[data-form-focused="true"] .bottom-tabbar {
 .aura-empty-row strong { font-size: 13px; }
 .aura-empty-row small { margin-top: 2px; color: var(--aura-muted); font-size: 11px; }
 
+.outfit-mini-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--aura-line);
+  border-radius: 7px;
+  background: white;
+}
+
+.outfit-mini-image,
+.outfit-mini-placeholder {
+  width: 100%;
+  aspect-ratio: 1 / 0.76;
+  object-fit: cover;
+}
+
+.outfit-mini-placeholder {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 24%, rgb(255 255 255 / 0.58), transparent 25%),
+    linear-gradient(145deg, color-mix(in srgb, var(--item-color, #d8d4cc) 35%, #faf8f3), #eeeae2);
+}
+
+.outfit-mini-placeholder span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 0.74);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.64);
+  color: rgb(15 23 42 / 0.62);
+  font-size: 13px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.outfit-mini-body {
+  padding: 7px 8px 8px;
+}
+
+.outfit-mini-body p,
+.outfit-mini-body strong,
+.outfit-mini-body small {
+  display: block;
+  overflow: hidden;
+  margin: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outfit-mini-body p {
+  color: var(--aura-muted);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.outfit-mini-body strong {
+  margin-top: 3px;
+  color: var(--aura-ink);
+  font-size: 13px;
+  line-height: 1.12;
+  text-transform: capitalize;
+}
+
+.outfit-mini-body small {
+  margin-top: 2px;
+  color: var(--aura-muted);
+  font-size: 9px;
+  line-height: 1.12;
+  text-transform: capitalize;
+}
+
+.see-on-me-outfit-preview {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--aura-line);
+  border-radius: 8px;
+  background: white;
+  padding: 10px;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.05);
+}
+
+.see-on-me-outfit-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.see-on-me-outfit-heading h4 {
+  margin: 0;
+  color: var(--aura-ink);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.see-on-me-outfit-heading span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--aura-soft);
+  padding: 5px 8px;
+  color: var(--aura-muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.see-on-me-outfit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
 .aura-tabbar {
   border-top: 1px solid rgb(27 28 28 / 0.08);
   background: rgb(253 252 248 / 0.96);
