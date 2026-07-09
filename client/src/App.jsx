@@ -2306,6 +2306,15 @@ export default function App() {
       setClothes((current) => [...items.reverse(), ...current]);
       setMessageTone('success');
       setMessage(payloads.length > 1 ? 'messages.itemsAdded' : 'messages.itemAdded');
+
+      if (items.some((item) => item.imageProcessing?.reason === 'queued')) {
+        window.setTimeout(() => {
+          loadClothes();
+        }, 7000);
+        window.setTimeout(() => {
+          loadClothes();
+        }, 15000);
+      }
     } catch (error) {
       setMessageTone('error');
       setMessage('messages.actionFailed');

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { db } from '../db.js';
 import { requireUserId } from '../services/userService.js';
-import { removeBackgroundFromImage } from '../services/backgroundRemovalService.js';
+import { getBackgroundRemovalConfig, removeBackgroundFromImage } from '../services/backgroundRemovalService.js';
 
 const router = Router();
 
@@ -17,9 +17,90 @@ const insertClothing = db.prepare(`
   VALUES (@userId, @type, @color, @season, @style, @imageUrl)
 `);
 
+const getClothingById = db.prepare(`
+  SELECT id, user_id as userId, type, color, season, style, image_url as imageUrl, created_at as createdAt
+  FROM clothes
+  WHERE id = ? AND user_id = ?
+`);
+
+const updateClothingImage = db.prepare(`
+  UPDATE clothes
+  SET image_url = ?
+  WHERE id = ? AND user_id = ?
+`);
+
 const validTypes = new Set(['top', 'tshirt', 'shirt', 'long sleeve', 'jacket', 'bottom', 'pants', 'shoes']);
 const validSeasons = new Set(['spring', 'summer', 'fall', 'winter', 'all']);
 const validStyles = new Set(['casual', 'formal', 'sporty', 'classic']);
+
+function summarizeImageProcessing(result = {}) {
+  return {
+    provider: result.provider || 'none',
+    changed: Boolean(result.changed),
+    reason: result.reason || '',
+    durationMs: result.durationMs || 0,
+    inputBytes: result.inputBytes || 0,
+    outputBytes: result.outputBytes || 0,
+    cached: Boolean(result.cached),
+    cost: result.cost || null
+  };
+}
+
+function queueBackgroundRemoval({ itemId, userId, imageUrl, type }) {
+  const config = getBackgroundRemovalConfig();
+
+  if (!imageUrl || !config.enabled || config.provider === 'none') {
+    return {
+      provider: config.provider,
+      changed: false,
+      reason: imageUrl ? 'disabled' : 'no-image',
+      durationMs: 0
+    };
+  }
+
+  setTimeout(async () => {
+    const startedAt = Date.now();
+
+    try {
+      const imageProcessing = await removeBackgroundFromImage(imageUrl, { userId });
+
+      if (imageProcessing.changed && imageProcessing.imageUrl) {
+        updateClothingImage.run(imageProcessing.imageUrl, itemId, userId);
+      }
+
+      console.log('[clothes] async item image processing', {
+        userId,
+        itemId,
+        type,
+        provider: imageProcessing.provider,
+        changed: imageProcessing.changed,
+        reason: imageProcessing.reason,
+        durationMs: imageProcessing.durationMs,
+        wallMs: Date.now() - startedAt,
+        inputBytes: imageProcessing.inputBytes,
+        outputBytes: imageProcessing.outputBytes,
+        cached: Boolean(imageProcessing.cached)
+      });
+    } catch (error) {
+      console.warn('[clothes] async item image processing failed', {
+        userId,
+        itemId,
+        type,
+        name: error?.name,
+        code: error?.code,
+        statusCode: error?.statusCode,
+        message: error?.message
+      });
+    }
+  }, 0);
+
+  return {
+    provider: config.provider,
+    changed: false,
+    reason: 'queued',
+    durationMs: 0
+  };
+}
 
 router.get('/', (req, res) => {
   const userId = requireUserId(req, res);
@@ -54,41 +135,13 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ message: 'Style must be casual, formal, sporty, or classic.' });
   }
 
-  const imageProcessing = imageUrl
-    ? await removeBackgroundFromImage(imageUrl, { userId })
-    : { imageUrl, changed: false, provider: 'none', reason: 'no-image', durationMs: 0 };
-  const finalImageUrl = imageProcessing.imageUrl || imageUrl;
-
-  if (imageUrl) {
-    console.log('[clothes] item image processing', {
-      userId,
-      type,
-      provider: imageProcessing.provider,
-      changed: imageProcessing.changed,
-      reason: imageProcessing.reason,
-      durationMs: imageProcessing.durationMs,
-      inputBytes: imageProcessing.inputBytes,
-      outputBytes: imageProcessing.outputBytes
-    });
-  }
-
-  const result = insertClothing.run({ userId, type, color, season, style, imageUrl: finalImageUrl || null });
-  const item = db
-    .prepare('SELECT id, user_id as userId, type, color, season, style, image_url as imageUrl, created_at as createdAt FROM clothes WHERE id = ? AND user_id = ?')
-    .get(result.lastInsertRowid, userId);
+  const result = insertClothing.run({ userId, type, color, season, style, imageUrl: imageUrl || null });
+  const item = getClothingById.get(result.lastInsertRowid, userId);
+  const imageProcessing = queueBackgroundRemoval({ itemId: item.id, userId, imageUrl, type });
 
   return res.status(201).json({
     ...item,
-    imageProcessing: {
-      provider: imageProcessing.provider,
-      changed: Boolean(imageProcessing.changed),
-      reason: imageProcessing.reason || '',
-      durationMs: imageProcessing.durationMs || 0,
-      inputBytes: imageProcessing.inputBytes || 0,
-      outputBytes: imageProcessing.outputBytes || 0,
-      cached: Boolean(imageProcessing.cached),
-      cost: imageProcessing.cost || null
-    }
+    imageProcessing: summarizeImageProcessing(imageProcessing)
   });
 });
 
