@@ -661,13 +661,11 @@ function WardrobeCard({ item }) {
       {hasImage ? (
         <img src={item.imageUrl} alt={t('closet.itemPhotoAlt')} loading="lazy" decoding="async" />
       ) : (
-        <div className="aura-wardrobe-placeholder" style={{ '--item-color': getColorHex(item.color) }}>
-          <span className="aura-placeholder-orbit" aria-hidden="true" />
+        <div className="aura-wardrobe-placeholder" style={{ '--item-color': getColorHex(item.color) }} aria-label={`${optionLabel('colors', item.color)} ${optionLabel('types', item.type)}`}>
+          <span className="aura-placeholder-swatch" aria-hidden="true" />
           <span className="aura-placeholder-icon" aria-hidden="true">
             <SparklesIcon />
           </span>
-          <span className="aura-placeholder-type">{optionLabel('types', item.type)}</span>
-          <small>{optionLabel('colors', item.color)}</small>
         </div>
       )}
       <div className="aura-wardrobe-meta">
@@ -1069,6 +1067,7 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
     outfitHistory
   }), [appearanceProfile, clothes, outfitHistory, preferences]);
   const filterOptionLabel = (group, value) => value === 'all' ? t('wardrobe.filters.all') : optionLabel(group, value);
+  const activeFilterCount = [filter !== 'all', seasonFilter !== 'all', colorFilter !== 'all'].filter(Boolean).length;
 
   async function handleAddAndClose(payload) {
     await onAdd(payload);
@@ -1116,8 +1115,9 @@ function WardrobeTab({ clothes, isLoading, onAdd, isAddingClothes, accessStatus,
           <button type="button" className="aura-icon-button" onClick={() => setShowSearch((value) => !value)} aria-label={t('wardrobe.searchPlaceholder')}>
             <MagnifyingGlassIcon aria-hidden="true" />
           </button>
-          <button type="button" className="aura-icon-button" onClick={() => setShowFilterSheet(true)} aria-label={t('wardrobe.filters.title')}>
+          <button type="button" className={`aura-icon-button ${activeFilterCount ? 'has-active-filters' : ''}`} onClick={() => setShowFilterSheet(true)} aria-label={t('wardrobe.filters.title')}>
             <AdjustmentsHorizontalIcon aria-hidden="true" />
+            {activeFilterCount ? <span className="aura-filter-count" aria-hidden="true">{activeFilterCount}</span> : null}
           </button>
         </div>
       </div>
