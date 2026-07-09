@@ -224,6 +224,7 @@
     "savedLooksTitle": "Saved Looks",
     "savedSeeOnMeTitle": "See On Me preview",
     "savedLooksEmptyTitle": "No saved looks yet",
+    "savedLooksLoading": "Loading saved looks...",
     "savedLooksEmpty": "Save a preview you like and you can open it again here.",
     "savedLooksTop": "Top",
     "savedLooksBottom": "Bottom",

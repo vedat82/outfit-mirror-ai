@@ -1829,28 +1829,6 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
   );
 }
 
-function LikedOutfitCard({ outfit }) {
-  const { t, optionLabel } = useI18n();
-  const items = [
-    [t('outfit.labels.top'), outfit.top],
-    [t('outfit.labels.bottom'), outfit.bottom],
-    [t('outfit.labels.shoes'), outfit.shoes]
-  ];
-
-  return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="grid gap-2">
-        {items.map(([label, item]) => (
-          <div key={label} className="flex items-center justify-between gap-3 text-sm">
-            <span className="font-medium text-slate-500">{label}</span>
-            <span className="text-right font-semibold capitalize text-slate-900">{optionLabel('colors', item.color)} {optionLabel('types', item.type)}</span>
-          </div>
-        ))}
-      </div>
-    </article>
-  );
-}
-
 function SavedLookPiece({ item, labelKey }) {
   const { t, optionLabel } = useI18n();
   const label = item ? `${optionLabel('colors', item.color)} ${optionLabel('types', item.type)}`.trim() : t('profile.savedLooksMissingItem');
@@ -1890,7 +1868,7 @@ function SavedLookPreviewCard({ look, onSelect }) {
   );
 }
 
-function SavedLooksSection({ likedOutfits, isLoadingLikedOutfits, outfitHistory, savedLooks, isLoadingSavedLooks }) {
+function SavedLooksSection({ savedLooks, isLoadingSavedLooks }) {
   const { t } = useI18n();
   const [selectedLook, setSelectedLook] = useState(null);
 
@@ -1914,19 +1892,11 @@ function SavedLooksSection({ likedOutfits, isLoadingLikedOutfits, outfitHistory,
   return (
     <SoftCard>
       <h3 className="text-base font-semibold text-slate-950">{t('profile.savedLooksTitle')}</h3>
-      {isLoadingLikedOutfits || isLoadingSavedLooks ? (
-        <p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">{t('likedOutfits.loading')}</p>
+      {isLoadingSavedLooks ? (
+        <p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">{t('profile.savedLooksLoading')}</p>
       ) : savedLooks.length ? (
         <div className="mt-3 grid max-h-96 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
           {savedLooks.map((look) => <SavedLookPreviewCard key={look.id} look={look} onSelect={setSelectedLook} />)}
-        </div>
-      ) : likedOutfits.length ? (
-        <div className="mt-3 grid max-h-72 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
-          {likedOutfits.slice(0, 6).map((outfit) => <LikedOutfitCard key={outfit.id} outfit={outfit} />)}
-        </div>
-      ) : outfitHistory.length ? (
-        <div className="mt-3 grid max-h-72 gap-3 overflow-y-auto pr-1">
-          {outfitHistory.slice(0, 4).map((item) => <OutfitResultCard key={item.historyId} suggestion={item} isFeedbackLoading={false} hasEnoughWardrobe />)}
         </div>
       ) : (
         <div className="saved-look-empty">
@@ -1983,7 +1953,7 @@ function DiagnosticsCard() {
   );
 }
 
-function LegacyProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatform, isPaymentLoading, paywallRequestId, likedOutfits, isLoadingLikedOutfits, savedLooks, isLoadingSavedLooks, outfitHistory, onStartPremium, onRestorePurchases, onCancelPremiumFlow, onSavePreferences, onSaveAppearance, onResetPremiumState }) {
+function LegacyProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatform, isPaymentLoading, paywallRequestId, savedLooks, isLoadingSavedLooks, onStartPremium, onRestorePurchases, onCancelPremiumFlow, onSavePreferences, onSaveAppearance, onResetPremiumState }) {
   const { t } = useI18n();
   const [showPaywall, setShowPaywall] = useState(false);
   const profileWithStyleGoal = { ...appearanceProfile, styleGoal: preferences.styleGoal };
@@ -2036,14 +2006,14 @@ function LegacyProfileTab({ preferences, accessStatus, appearanceProfile, paymen
             onSave={onSavePreferences}
           />
           <AppearanceProfile profile={profileWithStyleGoal} accessStatus={accessStatus} onSave={handleSaveAppearanceAndPreferences} showPhotoTools={false} />
-          <SavedLooksSection likedOutfits={likedOutfits} isLoadingLikedOutfits={isLoadingLikedOutfits} savedLooks={savedLooks} isLoadingSavedLooks={isLoadingSavedLooks} outfitHistory={outfitHistory} />
+          <SavedLooksSection savedLooks={savedLooks} isLoadingSavedLooks={isLoadingSavedLooks} />
         </div>
       </ScrollPanel>
     </div>
   );
 }
 
-function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatform, isPaymentLoading, paywallRequestId, requestedSection, likedOutfits, isLoadingLikedOutfits, savedLooks, isLoadingSavedLooks, outfitHistory, onStartPremium, onRestorePurchases, onCancelPremiumFlow, onSavePreferences, onSaveAppearance, onResetPremiumState }) {
+function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatform, isPaymentLoading, paywallRequestId, requestedSection, savedLooks, isLoadingSavedLooks, onStartPremium, onRestorePurchases, onCancelPremiumFlow, onSavePreferences, onSaveAppearance, onResetPremiumState }) {
   const { t } = useI18n();
   const [activeSection, setActiveSection] = useState('');
   const [showPaywall, setShowPaywall] = useState(false);
@@ -2168,7 +2138,7 @@ function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatf
         <AppearanceProfile profile={profileWithStyleGoal} accessStatus={accessStatus} onSave={handleSaveAppearanceAndPreferences} showPhotoTools={false} />
       ) : null}
       {activeSection === 'saved' ? (
-        <SavedLooksSection likedOutfits={likedOutfits} isLoadingLikedOutfits={isLoadingLikedOutfits} savedLooks={savedLooks} isLoadingSavedLooks={isLoadingSavedLooks} outfitHistory={outfitHistory} />
+        <SavedLooksSection savedLooks={savedLooks} isLoadingSavedLooks={isLoadingSavedLooks} />
       ) : null}
       {activeSection === 'language' ? (
         <PreferencesPanel preferences={preferences} accessStatus={accessStatus} onOpenPaywall={() => setShowPaywall(true)} onResetPremiumState={onResetPremiumState} onSave={onSavePreferences} />
@@ -2252,8 +2222,23 @@ export default function App() {
     setIsLoadingClothes(true);
 
     try {
-      setClothes(await getClothes());
-    } catch {
+      const nextClothes = await getClothes();
+      setClothes(nextClothes);
+
+      if (import.meta.env.DEV || import.meta.env.VITE_API_DEBUG === 'true') {
+        console.info('[wardrobe] loaded clothes', {
+          count: Array.isArray(nextClothes) ? nextClothes.length : 0,
+          userIdPrefix: getLocalUserId().slice(0, 8)
+        });
+      }
+    } catch (error) {
+      if (import.meta.env.DEV || import.meta.env.VITE_API_DEBUG === 'true') {
+        console.error('[wardrobe] failed to load clothes', {
+          message: error.message,
+          status: error.status,
+          requestUrl: error.requestUrl
+        });
+      }
       setMessageTone('error');
       setMessage('messages.actionFailed');
     } finally {
@@ -2906,11 +2891,8 @@ export default function App() {
               isPaymentLoading={isPaymentLoading}
               paywallRequestId={paywallRequestId}
               requestedSection={profileSectionRequest}
-              likedOutfits={likedOutfits}
-              isLoadingLikedOutfits={isLoadingLikedOutfits}
               savedLooks={savedLooks}
               isLoadingSavedLooks={isLoadingSavedLooks}
-              outfitHistory={outfitHistory}
               onStartPremium={handleStartPremium}
               onRestorePurchases={handleRestorePurchases}
               onCancelPremiumFlow={handleCancelPremiumFlow}

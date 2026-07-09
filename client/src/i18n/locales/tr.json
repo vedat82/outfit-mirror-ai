@@ -224,6 +224,7 @@
     "savedLooksTitle": "Kaydedilen Görünümler",
     "savedSeeOnMeTitle": "Üzerimde Gör önizlemesi",
     "savedLooksEmptyTitle": "Henüz kayıtlı görünüm yok",
+    "savedLooksLoading": "Kaydedilen görünümler yükleniyor...",
     "savedLooksEmpty": "Beğendiğin bir önizlemeyi kaydettiğinde burada tekrar açabilirsin.",
     "savedLooksTop": "Üst",
     "savedLooksBottom": "Alt",
