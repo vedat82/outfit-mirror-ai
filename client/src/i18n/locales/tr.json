@@ -531,8 +531,8 @@
       "adjusting": "Detaylar son kez ayarlanıyor...",
       "almostReady": "Neredeyse hazır..."
     },
-    "loadingExpectation": "Bu işlem genelde 10-30 saniye sürebilir.",
-    "longWait": "Bu işlem biraz uzun sürüyor, önizleme hâlâ hazırlanıyor...",
+    "loadingExpectation": "Daha gerçekçi bir sonuç için bu işlem bazen 40-60 saniye sürebilir.",
+    "longWait": "Önizleme hâlâ hazırlanıyor; kaliteyi korumak için biraz daha zamana ihtiyacı var...",
     "photoTitle": "Tam boy fotoğraf seç",
     "photoDescription": "Net, aydınlık, tek kişi ve dik açıyla çekilmiş bir fotoğraf en iyi sonucu verir.",
     "outfitTitle": "Seçilen kombin",

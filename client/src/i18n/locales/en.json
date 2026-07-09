@@ -531,8 +531,8 @@
       "adjusting": "Fine-tuning the details...",
       "almostReady": "Almost ready..."
     },
-    "loadingExpectation": "This usually takes about 10-30 seconds.",
-    "longWait": "This is taking a little longer, your preview is still being prepared...",
+    "loadingExpectation": "For a more realistic result, this can sometimes take 40-60 seconds.",
+    "longWait": "Your preview is still being prepared; it needs a little more time to keep the quality high...",
     "photoTitle": "Choose a full-body photo",
     "photoDescription": "A clear, well-lit, upright photo with one person gives the best result.",
     "outfitTitle": "Selected outfit",

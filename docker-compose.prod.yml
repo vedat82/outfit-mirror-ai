@@ -18,6 +18,10 @@ services:
       ALLOW_XCODE_STOREKIT_VERIFICATION: "false"
       SENTRY_ENABLE_LOCAL: "false"
       SENTRY_TEST_ENDPOINT_ENABLED: "false"
+      SEE_ON_ME_PROVIDER: openai
+      SEE_ON_ME_FALLBACK_PROVIDER: openai
+      BACKGROUND_REMOVAL_ENABLED: "false"
+      BACKGROUND_REMOVAL_PROVIDER: none
     ports:
       - "127.0.0.1:${OUTFIT_API_PORT:-4100}:4000"
     volumes:
@@ -33,4 +37,3 @@ services:
 
 volumes:
   outfit_data:
-
