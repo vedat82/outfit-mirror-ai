@@ -663,9 +663,6 @@ function WardrobeCard({ item }) {
       ) : (
         <div className="aura-wardrobe-placeholder" style={{ '--item-color': getColorHex(item.color) }} aria-label={`${optionLabel('colors', item.color)} ${optionLabel('types', item.type)}`}>
           <span className="aura-placeholder-swatch" aria-hidden="true" />
-          <span className="aura-placeholder-icon" aria-hidden="true">
-            <SparklesIcon />
-          </span>
         </div>
       )}
       <div className="aura-wardrobe-meta">
@@ -1851,17 +1848,22 @@ function SavedLookPiece({ item, labelKey }) {
 function SavedLookPreviewCard({ look, onSelect }) {
   const { t } = useI18n();
   const outfit = look.outfit || {};
+  const pieces = [outfit.top, outfit.bottom, outfit.shoes].filter(Boolean);
 
   return (
     <button type="button" onClick={() => onSelect?.(look)} className="saved-look-card">
-      <img src={look.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="h-56 w-full bg-slate-950 object-contain" loading="lazy" decoding="async" />
-      <div className="p-3">
-        <p className="text-sm font-semibold text-slate-950">{t('profile.savedSeeOnMeTitle')}</p>
-        <p className="mt-1 text-xs text-slate-500">{look.createdAt ? new Date(look.createdAt).toLocaleDateString() : ''}</p>
-        <div className="saved-look-pieces">
-          <SavedLookPiece item={outfit.top} labelKey="profile.savedLooksTop" />
-          <SavedLookPiece item={outfit.bottom} labelKey="profile.savedLooksBottom" />
-          <SavedLookPiece item={outfit.shoes} labelKey="profile.savedLooksShoes" />
+      <img src={look.previewImageUrl} alt={t('seeOnMe.previewAlt')} className="saved-look-card-image" loading="lazy" decoding="async" />
+      <div className="saved-look-card-body">
+        <div>
+          <p>{t('profile.savedSeeOnMeTitle')}</p>
+          <small>{look.createdAt ? new Date(look.createdAt).toLocaleDateString() : ''}</small>
+        </div>
+        <div className="saved-look-mini-pieces" aria-hidden="true">
+          {pieces.map((item, index) => (
+            <span key={`${item.id || item.type}-${index}`} style={{ '--piece-color': getColorHex(item.color) }}>
+              {item.imageUrl ? <img src={item.imageUrl} alt="" loading="lazy" decoding="async" /> : <PhotoIcon />}
+            </span>
+          ))}
         </div>
       </div>
     </button>
@@ -1895,7 +1897,7 @@ function SavedLooksSection({ savedLooks, isLoadingSavedLooks }) {
       {isLoadingSavedLooks ? (
         <p className="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">{t('profile.savedLooksLoading')}</p>
       ) : savedLooks.length ? (
-        <div className="mt-3 grid max-h-96 gap-3 overflow-y-auto pr-1 sm:grid-cols-2">
+        <div className="mt-3 grid max-h-[520px] grid-cols-2 gap-3 overflow-y-auto pr-1">
           {savedLooks.map((look) => <SavedLookPreviewCard key={look.id} look={look} onSelect={setSelectedLook} />)}
         </div>
       ) : (
