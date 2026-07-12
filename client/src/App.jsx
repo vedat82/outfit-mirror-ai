@@ -27,6 +27,7 @@ import { canUseAppleSubscriptions, detectPaymentPlatform, isNativeApp } from './
 import { compressImageDataUrlToBudget, optimizeAiImageFile } from './utils/imageCompression.js';
 import { getNativeImagePickerDebug, imageSources, isNativeImagePickerCancel, pickNativeImageDataUrl } from './utils/nativeImagePicker.js';
 import { canUsePaymentTestHelpers, isCurrentPaymentRequest, isXcodeStoreKitEnvironment, withPaymentTimeout } from './utils/paymentFlow.js';
+import { isAppStoreScreenshotMode } from './utils/appStoreScreenshotMode.js';
 import { addMonitoringBreadcrumb, captureAppError } from './monitoring/sentry.js';
 import { getApiBaseUrl } from './api/http.js';
 import stylistHero from './assets/stylist-hero.jpg';
@@ -1375,7 +1376,7 @@ function SeeOnMeOutfitPreview({ suggestion }) {
   );
 }
 
-function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences, onSaveAppearance, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks, onGenerationStatusChange }) {
+function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences, onSaveAppearance, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks, onGenerationStatusChange, screenshotPreview }) {
   const { t, language } = useI18n();
   const [selectedPhotoId, setSelectedPhotoId] = useState(appearanceProfile.photos[0]?.id || '');
   const [selectedPhotoDataUrl, setSelectedPhotoDataUrl] = useState(appearanceProfile.photos[0]?.imageUrl || '');
@@ -1523,6 +1524,15 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
     setSavedLookId('');
 
     try {
+      if (screenshotPreview) {
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+        setPreview(screenshotPreview);
+        setState('ready');
+        setErrorMessage('');
+        onGenerationStatusChange?.({ status: 'ready', cached: true });
+        return;
+      }
+
       const result = await generateSeeOnMePreview({
         imageDataUrl: selectedPhotoDataUrl,
         outfit: suggestion,
@@ -1757,7 +1767,7 @@ function SeeOnMePanel({ accessStatus, suggestion, appearanceProfile, preferences
   );
 }
 
-function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearanceProfile, preferences, onSaveAppearance, activeTool, onActiveToolChange, suggestion, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks, onAnalysisComplete, onSeeOnMeGenerationStatusChange }) {
+function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearanceProfile, preferences, onSaveAppearance, activeTool, onActiveToolChange, suggestion, onGenerateNewOutfit, onSavedLook, onOpenSavedLooks, onAnalysisComplete, onSeeOnMeGenerationStatusChange, screenshotPreview }) {
   const { t } = useI18n();
   const locked = !accessStatus.hasFullAccess;
   const mirrorTools = [
@@ -1806,8 +1816,8 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
                 </div>
               </div>
               <OutfitPhotoAnalysis clothes={clothes} accessStatus={accessStatus} appearanceProfile={appearanceProfile} preferences={preferences} onAnalysisComplete={onAnalysisComplete} />
-          </section>
-          <section className={activeTool === 'see-on-me' ? 'mirror-see-on-me' : 'mirror-see-on-me hidden'}>
+            </section>
+            <section className={activeTool === 'see-on-me' ? 'mirror-see-on-me' : 'mirror-see-on-me hidden'}>
               <div className="mirror-tool-heading">
                 <div>
                   <p className="aura-kicker">{t('mirror.flagship')}</p>
@@ -1817,20 +1827,21 @@ function AiStudioTab({ accessStatus, onAdd, isAddingClothes, clothes, appearance
                 <SparklesIcon aria-hidden="true" />
               </div>
               {locked ? <LockedFeature /> : (
-              <SeeOnMePanel
-                accessStatus={accessStatus}
-                suggestion={suggestion}
-                appearanceProfile={appearanceProfile}
-                preferences={preferences}
-                onSaveAppearance={onSaveAppearance}
-                onGenerateNewOutfit={onGenerateNewOutfit}
-                onSavedLook={onSavedLook}
-                onOpenSavedLooks={onOpenSavedLooks}
-                onGenerationStatusChange={onSeeOnMeGenerationStatusChange}
-              />
+                <SeeOnMePanel
+                  accessStatus={accessStatus}
+                  suggestion={suggestion}
+                  appearanceProfile={appearanceProfile}
+                  preferences={preferences}
+                  onSaveAppearance={onSaveAppearance}
+                  onGenerateNewOutfit={onGenerateNewOutfit}
+                  onSavedLook={onSavedLook}
+                  onOpenSavedLooks={onOpenSavedLooks}
+                  onGenerationStatusChange={onSeeOnMeGenerationStatusChange}
+                  screenshotPreview={screenshotPreview}
+                />
               )}
-          </section>
-        </div>
+            </section>
+          </div>
       </ScrollPanel>
     </div>
   );
@@ -2181,15 +2192,18 @@ function ProfileTab({ preferences, accessStatus, appearanceProfile, paymentPlatf
 export default function App() {
   const { t } = useI18n();
   useStableMobileViewport();
+  const screenshotMode = isAppStoreScreenshotMode();
+  const screenshotDataRef = useRef(null);
+  const screenshotSuggestionIndexRef = useRef(0);
   const [clothes, setClothes] = useState([]);
   const [suggestion, setSuggestion] = useState(null);
   const [occasion, setOccasion] = useState('daily');
   const [season, setSeason] = useState('all');
   const [message, setMessage] = useState('');
   const [messageTone, setMessageTone] = useState('info');
-  const [isLoadingClothes, setIsLoadingClothes] = useState(true);
-  const [isLoadingLikedOutfits, setIsLoadingLikedOutfits] = useState(true);
-  const [isLoadingSavedLooks, setIsLoadingSavedLooks] = useState(true);
+  const [isLoadingClothes, setIsLoadingClothes] = useState(() => !screenshotMode);
+  const [isLoadingLikedOutfits, setIsLoadingLikedOutfits] = useState(() => !screenshotMode);
+  const [isLoadingSavedLooks, setIsLoadingSavedLooks] = useState(() => !screenshotMode);
   const [isAddingClothes, setIsAddingClothes] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isSavingFeedback, setIsSavingFeedback] = useState(false);
@@ -2197,19 +2211,19 @@ export default function App() {
   const [isCheckingPaymentReturn, setIsCheckingPaymentReturn] = useState(false);
   const [paymentPlatform] = useState(() => detectPaymentPlatform());
   const [userId] = useState(() => getLocalUserId());
-  const [, setIsPremium] = useState(() => getIsPremium());
-  const [accessStatus, setAccessStatus] = useState(() => getAccessStatus());
+  const [, setIsPremium] = useState(() => (screenshotMode ? true : getIsPremium()));
+  const [accessStatus, setAccessStatus] = useState(getAccessStatus);
   const [dailySuggestionUsage, setDailySuggestionUsage] = useState(() => getDailySuggestionUsage());
-  const [preferences, setPreferences] = useState(() => getPreferences());
-  const [appearanceProfile, setAppearanceProfile] = useState(() => getAppearanceProfile());
-  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(() => getOnboardingCompleted());
+  const [preferences, setPreferences] = useState(getPreferences);
+  const [appearanceProfile, setAppearanceProfile] = useState(getAppearanceProfile);
+  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(() => (screenshotMode ? true : getOnboardingCompleted()));
   const [activePage, setActivePage] = useState('home');
   const [activeStudioTool, setActiveStudioTool] = useState('review');
   const [profileSectionRequest, setProfileSectionRequest] = useState(null);
   const [paywallRequestId, setPaywallRequestId] = useState(0);
   const [likedOutfits, setLikedOutfits] = useState([]);
   const [savedLooks, setSavedLooks] = useState([]);
-  const [outfitHistory, setOutfitHistory] = useState(() => loadRecentOutfits());
+  const [outfitHistory, setOutfitHistory] = useState(() => (screenshotMode ? [] : loadRecentOutfits()));
   const [reviewHistory, setReviewHistory] = useState([]);
   const [seeOnMeJob, setSeeOnMeJob] = useState({ status: 'idle', cached: false, updatedAt: 0 });
   const paymentRequestRef = useRef(0);
@@ -2222,6 +2236,39 @@ export default function App() {
   };
   const isPaymentResultPage = window.location.pathname === '/payment-success';
   const paymentReturnStatus = new URLSearchParams(window.location.search).get('payment');
+
+  useEffect(() => {
+    if (!screenshotMode || screenshotDataRef.current) return;
+
+    let isMounted = true;
+
+    async function loadScreenshotData() {
+      const { appStoreScreenshotData } = await import('./utils/appStoreScreenshotData.js');
+      if (!isMounted) return;
+
+      screenshotDataRef.current = appStoreScreenshotData;
+      screenshotSuggestionIndexRef.current = 0;
+      setClothes(appStoreScreenshotData.clothes);
+      setSuggestion(appStoreScreenshotData.suggestion);
+      setIsPremium(true);
+      setAccessStatus(appStoreScreenshotData.accessStatus);
+      setPreferences(appStoreScreenshotData.preferences);
+      setAppearanceProfile(appStoreScreenshotData.appearanceProfile);
+      setIsOnboardingCompleted(true);
+      setSavedLooks(appStoreScreenshotData.savedLooks);
+      setOutfitHistory(appStoreScreenshotData.outfitHistory);
+      setReviewHistory(appStoreScreenshotData.reviewHistory);
+      setIsLoadingClothes(false);
+      setIsLoadingLikedOutfits(false);
+      setIsLoadingSavedLooks(false);
+    }
+
+    loadScreenshotData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [screenshotMode]);
 
   async function syncPremiumFromBackend() {
     const paymentStatus = await getPaymentStatus();
@@ -2330,6 +2377,19 @@ export default function App() {
   }
 
   async function handleSuggest() {
+    if (screenshotMode) {
+      const nextSuggestions = screenshotDataRef.current?.suggestions || [];
+      if (!nextSuggestions.length) return;
+      const nextIndex = screenshotSuggestionIndexRef.current % nextSuggestions.length;
+      screenshotSuggestionIndexRef.current += 1;
+      const nextSuggestion = nextSuggestions[nextIndex];
+      setMessage('');
+      setMessageTone('info');
+      setSuggestion(nextSuggestion);
+      rememberOutfit(nextSuggestion);
+      return;
+    }
+
     const currentUsage = getDailySuggestionUsage();
     setDailySuggestionUsage(currentUsage);
 
@@ -2404,12 +2464,15 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (screenshotMode) return;
     loadClothes();
     loadLikedOutfits();
     loadSavedLooks();
-  }, []);
+  }, [screenshotMode]);
 
   useEffect(() => {
+    if (screenshotMode) return;
+
     async function syncPaymentState() {
       try {
         await syncPremiumFromBackend();
@@ -2419,7 +2482,7 @@ export default function App() {
     }
 
     syncPaymentState();
-  }, []);
+  }, [screenshotMode]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2907,6 +2970,7 @@ export default function App() {
               onOpenSavedLooks={openSavedLooks}
               onAnalysisComplete={handleOutfitAnalysisComplete}
               onSeeOnMeGenerationStatusChange={handleSeeOnMeGenerationStatusChange}
+              screenshotPreview={screenshotMode ? screenshotDataRef.current?.seeOnMePreview : null}
             />
           </div>
           <div className={activePage === 'profile' ? 'contents' : 'hidden'} aria-hidden={activePage !== 'profile'}>
