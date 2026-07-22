@@ -4,6 +4,7 @@ import { detectPaymentPlatform } from '../utils/platform.js';
 import { sanitizeAppearanceProfileForSeeOnMe } from '../utils/seeOnMePayload.js';
 import { fetchJson } from './http.js';
 import { compressImageDataUrlToBudget } from '../utils/imageCompression.js';
+import { ensureAiDataConsent } from '../utils/aiDataConsent.js';
 
 const seeOnMeDebugStorageKey = 'outfitMirrorSeeOnMeDebug';
 
@@ -109,6 +110,7 @@ function getPayloadBytes(payload) {
 }
 
 export async function generateSeeOnMePreview({ imageDataUrl, outfit, appearanceProfile, preferences, language, continueAnyway = false }) {
+  ensureAiDataConsent(language);
   const accessStatus = getAccessStatus();
   const totalStartedAt = nowMs();
   const prepareStartedAt = nowMs();

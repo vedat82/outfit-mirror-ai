@@ -35,6 +35,7 @@ export default function PaywallScreen({ accessStatus, paymentPlatform = 'web', i
   const canUseAppleBilling = canUseAppleSubscriptions();
   const benefits = [
     'paywall.benefits.unlimitedOutfits',
+    'paywall.benefits.seeOnMePreview',
     'paywall.benefits.aiFeedback',
     'paywall.benefits.clothesUpload',
     'paywall.benefits.appearanceStyle',
@@ -226,6 +227,17 @@ export default function PaywallScreen({ accessStatus, paymentPlatform = 'web', i
               {t('buttons.maybeLater')}
             </button>
           </div>
+          <p className="text-center text-xs leading-5 text-slate-500">
+            {t('paywall.legalAgreement')}{' '}
+            <a href="https://outfit.veerapps.com/terms.html" target="_blank" rel="noreferrer" className="font-semibold text-teal-700 underline">
+              {t('paywall.termsLink')}
+            </a>{' '}
+            {t('paywall.and')}{' '}
+            <a href="https://outfit.veerapps.com/privacy.html" target="_blank" rel="noreferrer" className="font-semibold text-teal-700 underline">
+              {t('paywall.privacyLink')}
+            </a>
+            {t('paywall.legalSuffix')}
+          </p>
         </div>
       )}
     </section>

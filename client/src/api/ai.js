@@ -2,8 +2,10 @@ import { getAccessStatus, getLocalUserId } from './userIdentity.js';
 import { addMonitoringBreadcrumb, captureAppError } from '../monitoring/sentry.js';
 import { detectPaymentPlatform } from '../utils/platform.js';
 import { fetchJson } from './http.js';
+import { ensureAiDataConsent } from '../utils/aiDataConsent.js';
 
-export async function analyzeImage({ mode, imageDataUrl, language, appearanceProfile, preferences }) {
+export async function analyzeImage({ mode, imageDataUrl, language, appearanceProfile, preferences, wardrobeItems }) {
+  ensureAiDataConsent(language);
   const accessStatus = getAccessStatus();
   addMonitoringBreadcrumb('ai', 'analyze-image:start', {
     mode,
@@ -17,7 +19,7 @@ export async function analyzeImage({ mode, imageDataUrl, language, appearancePro
       'X-User-Id': getLocalUserId(),
       'X-Platform': detectPaymentPlatform()
     },
-    body: JSON.stringify({ mode, imageDataUrl, language, appearanceProfile, preferences })
+    body: JSON.stringify({ mode, imageDataUrl, language, appearanceProfile, preferences, wardrobeItems })
   }, `ai:analyze:${mode}`);
 
   if (!response.ok) {
