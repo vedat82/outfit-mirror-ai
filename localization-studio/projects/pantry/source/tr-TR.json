@@ -1,0 +1,18 @@
+{
+  "app": {
+    "name": "Pantry Lens: AI Tarifler",
+    "subtitle": "Malzemeyi Tara, Tarifini Bul",
+    "description": "Elindeki malzemeleri tara, Pantry Lens'in bulduklarını doğrula ve yapay zekâ ile sıralanan üç pratik tarif arasından seçimini yap.",
+    "promotionalText": "Elindeki malzemeleri yapay zekâ ile pratik tarif fikirlerine dönüştür.",
+    "keywordOne": "malzeme tarama",
+    "keywordTwo": "kiler tarifleri"
+  },
+  "story": {
+    "problem": {"title":"Bugün ne pişirsem derdine son","eyebrow":"AKŞAM YEMEĞİ HAZIR","lead":"İyi bir yemeğin","accent":"başlangıcı","close":"zaten evinde.","supportingLead":"Önce elindekileri","supportingAccent":"değerlendir."},
+    "promise": {"title":"Elindekileri göster","eyebrow":"TEK FOTOĞRAF","lead":"Malzemelerini tara.","accent":"Kontrol sende.","close":"Güvenle karar ver.","supportingLead":"Fotoğrafla başla,","supportingAccent":"kolayca düzelt."},
+    "feature-one": {"title":"Her malzemeyi doğrula","eyebrow":"SEN ONAYLARSIN","lead":"Adı düzelt.","accent":"Miktarı boş bırak.","close":"Eksik ürünü ekle.","supportingLead":"Sen onaylamadan","supportingAccent":"hiçbir ürün kullanılmaz."},
+    "feature-two": {"title":"Sıralanmış üç seçenek","eyebrow":"DAHA AZ ARAMA","lead":"En uygun olanı gör.","accent":"Nedenini bil.","close":"Pişirmeye başla.","supportingLead":"Süreyi, emeği ve","supportingAccent":"eksikleri karşılaştır."},
+    "outcome": {"title":"Kilerden sofraya","eyebrow":"NET ADIMLARLA PİŞİR","lead":"Tarifi takip et.","accent":"Sonucu kaydet.","close":"Pantry damak tadını öğrensin.","supportingLead":"Geri bildirimin sonraki","supportingAccent":"sıralamaları iyileştirir."},
+    "premium-bridge": {"title":"Keşfetmek için daha fazla alan","eyebrow":"PANTRY PREMIUM","lead":"Daha fazla analiz.","accent":"Daha fazla fotoğraf.","close":"Daha uzun mutfak hafızası.","supportingLead":"Premium'u yedi gün","supportingAccent":"ücretsiz dene."}
+  }
+}

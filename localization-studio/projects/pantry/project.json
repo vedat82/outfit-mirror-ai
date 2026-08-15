@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "1.0",
+  "project": {
+    "id": "pantry",
+    "name": "Pantry Lens: AI Recipes",
+    "appVersion": "1.0.0",
+    "sourceLocale": "en-US",
+    "platforms": ["ios"]
+  },
+  "localization": {
+    "status": "machine_draft",
+    "supportedLocales": ["en-US", "tr-TR"],
+    "rtlLocales": [],
+    "storyCopy": "story/locales.json",
+    "applicationCopy": {
+      "source": "source/en-US.json",
+      "existingLocales": {"tr-TR": "source/tr-TR.json"},
+      "outputDirectory": "locales/application",
+      "integration": {
+        "adapter": "json-directory",
+        "targetDirectory": null
+      },
+      "chunkSize": 40,
+      "chunkConcurrency": 4,
+      "localeConcurrency": 3
+    }
+  },
+  "brand": {
+    "primaryColor": "#075F45",
+    "accentColor": "#B86213",
+    "headingFont": "Inter",
+    "logo": null
+  },
+  "story": {
+    "mode": "reusable-story",
+    "template": "luxury-editorial",
+    "surfaces": [
+      "onboarding",
+      "paywall",
+      "app-store"
+    ],
+    "assetPolicy": "app-specific-no-ui-screenshots",
+    "fields": [
+      "eyebrow",
+      "lead",
+      "accent",
+      "close",
+      "supportingLead",
+      "supportingAccent"
+    ],
+    "scenes": [
+      {
+        "id": "problem",
+        "order": 1,
+        "role": "problem",
+        "productExperience": false,
+        "asset": "assets/story/01-problem.png",
+        "titleKey": "story.problem.title",
+        "copyKeys": {
+          "eyebrow": "story.problem.eyebrow",
+          "lead": "story.problem.lead",
+          "accent": "story.problem.accent",
+          "close": "story.problem.close",
+          "supportingLead": "story.problem.supportingLead",
+          "supportingAccent": "story.problem.supportingAccent"
+        }
+      },
+      {
+        "id": "promise",
+        "order": 2,
+        "role": "promise",
+        "productExperience": false,
+        "asset": "assets/story/02-promise.png",
+        "titleKey": "story.promise.title",
+        "copyKeys": {
+          "eyebrow": "story.promise.eyebrow",
+          "lead": "story.promise.lead",
+          "accent": "story.promise.accent",
+          "close": "story.promise.close",
+          "supportingLead": "story.promise.supportingLead",
+          "supportingAccent": "story.promise.supportingAccent"
+        }
+      },
+      {
+        "id": "feature-one",
+        "order": 3,
+        "role": "feature-one",
+        "productExperience": true,
+        "asset": "assets/story/03-feature-one.png",
+        "titleKey": "story.feature-one.title",
+        "copyKeys": {
+          "eyebrow": "story.feature-one.eyebrow",
+          "lead": "story.feature-one.lead",
+          "accent": "story.feature-one.accent",
+          "close": "story.feature-one.close",
+          "supportingLead": "story.feature-one.supportingLead",
+          "supportingAccent": "story.feature-one.supportingAccent"
+        }
+      },
+      {
+        "id": "feature-two",
+        "order": 4,
+        "role": "feature-two",
+        "productExperience": true,
+        "asset": "assets/story/04-feature-two.png",
+        "titleKey": "story.feature-two.title",
+        "copyKeys": {
+          "eyebrow": "story.feature-two.eyebrow",
+          "lead": "story.feature-two.lead",
+          "accent": "story.feature-two.accent",
+          "close": "story.feature-two.close",
+          "supportingLead": "story.feature-two.supportingLead",
+          "supportingAccent": "story.feature-two.supportingAccent"
+        }
+      },
+      {
+        "id": "outcome",
+        "order": 5,
+        "role": "outcome",
+        "productExperience": true,
+        "asset": "assets/story/05-outcome.png",
+        "titleKey": "story.outcome.title",
+        "copyKeys": {
+          "eyebrow": "story.outcome.eyebrow",
+          "lead": "story.outcome.lead",
+          "accent": "story.outcome.accent",
+          "close": "story.outcome.close",
+          "supportingLead": "story.outcome.supportingLead",
+          "supportingAccent": "story.outcome.supportingAccent"
+        }
+      },
+      {
+        "id": "premium-bridge",
+        "order": 6,
+        "role": "premium-bridge",
+        "productExperience": false,
+        "asset": "assets/story/06-premium-bridge.png",
+        "titleKey": "story.premium-bridge.title",
+        "copyKeys": {
+          "eyebrow": "story.premium-bridge.eyebrow",
+          "lead": "story.premium-bridge.lead",
+          "accent": "story.premium-bridge.accent",
+          "close": "story.premium-bridge.close",
+          "supportingLead": "story.premium-bridge.supportingLead",
+          "supportingAccent": "story.premium-bridge.supportingAccent"
+        }
+      }
+    ]
+  },
+  "metadata": {
+    "nameKey": "app.name",
+    "subtitleKey": "app.subtitle",
+    "descriptionKeys": [
+      "app.description"
+    ],
+    "keywordKeys": [
+      "app.keywordOne",
+      "app.keywordTwo"
+    ],
+    "promotionalTextKey": "app.promotionalText"
+  },
+  "output": {
+    "root": "../artifacts/localization-studio"
+  },
+  "appStoreConnect": {
+    "bundleId": "com.veerapps.pantryai",
+    "versionString": "1.0.0",
+    "platform": "IOS",
+    "keychainAccount": "veerapps-app-store-connect",
+    "screenshotDisplayType": "APP_IPHONE_67",
+    "screenshotWidth": 1290,
+    "screenshotHeight": 2796,
+    "preserveExistingMetadataLocales": [
+      "en-US"
+    ],
+    "supportUrl": "https://pantry.veerapps.com/support.html",
+    "privacyPolicyUrl": "https://pantry.veerapps.com/privacy.html",
+    "marketingUrl": "https://pantry.veerapps.com/"
+  }
+}

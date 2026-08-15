@@ -1,0 +1,66 @@
+{
+  "app": {
+    "name": "Pantry Lens: AI Recipes",
+    "subtitle": "Scan Food. Cook Smarter.",
+    "description": "Scan the ingredients you already have, review what Pantry Lens found, and choose from three practical AI-ranked recipes.",
+    "promotionalText": "Turn the ingredients you already have into practical recipe ideas with AI.",
+    "keywordOne": "food scanner",
+    "keywordTwo": "pantry recipes"
+  },
+  "story": {
+    "problem": {
+      "title": "No more what should I cook?",
+      "eyebrow": "DINNER, DECIDED",
+      "lead": "You already have",
+      "accent": "the beginning",
+      "close": "of a good meal.",
+      "supportingLead": "Start with what is",
+      "supportingAccent": "already at home."
+    },
+    "promise": {
+      "title": "Show what you have",
+      "eyebrow": "ONE PHOTO",
+      "lead": "Scan your ingredients.",
+      "accent": "Keep control.",
+      "close": "Choose with confidence.",
+      "supportingLead": "Photo first, with",
+      "supportingAccent": "easy corrections."
+    },
+    "feature-one": {
+      "title": "Review every ingredient",
+      "eyebrow": "YOU CONFIRM",
+      "lead": "Fix a name.",
+      "accent": "Skip an amount.",
+      "close": "Add what AI missed.",
+      "supportingLead": "Nothing is used",
+      "supportingAccent": "before you approve it."
+    },
+    "feature-two": {
+      "title": "Three choices, ranked",
+      "eyebrow": "LESS BROWSING",
+      "lead": "See the best fit.",
+      "accent": "Know why.",
+      "close": "Start cooking.",
+      "supportingLead": "Compare time, effort,",
+      "supportingAccent": "and missing ingredients."
+    },
+    "outcome": {
+      "title": "From pantry to plate",
+      "eyebrow": "COOK WITH CLARITY",
+      "lead": "Follow the recipe.",
+      "accent": "Save the result.",
+      "close": "Teach Pantry your taste.",
+      "supportingLead": "Your feedback improves",
+      "supportingAccent": "future rankings."
+    },
+    "premium-bridge": {
+      "title": "More room to explore",
+      "eyebrow": "PANTRY PREMIUM",
+      "lead": "More analyses.",
+      "accent": "More photos.",
+      "close": "A longer kitchen memory.",
+      "supportingLead": "Try Premium free",
+      "supportingAccent": "for seven days."
+    }
+  }
+}

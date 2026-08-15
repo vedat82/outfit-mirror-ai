@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "sourceLocale": "en-US",
+  "locales": {
+    "en-US": {
+      "name": "Pantry Lens: AI Recipes",
+      "direction": "ltr",
+      "status": "source",
+      "scenes": {
+        "problem": {"eyebrow":"DINNER, DECIDED","lead":"You already have","accent":"the beginning","close":"of a good meal.","supportingLead":"Start with what is","supportingAccent":"already at home."},
+        "promise": {"eyebrow":"ONE PHOTO","lead":"Scan your ingredients.","accent":"Keep control.","close":"Choose with confidence.","supportingLead":"Photo first, with","supportingAccent":"easy corrections."},
+        "feature-one": {"eyebrow":"YOU CONFIRM","lead":"Fix a name.","accent":"Skip an amount.","close":"Add what AI missed.","supportingLead":"Nothing is used","supportingAccent":"before you approve it."},
+        "feature-two": {"eyebrow":"LESS BROWSING","lead":"See the best fit.","accent":"Know why.","close":"Start cooking.","supportingLead":"Compare time, effort,","supportingAccent":"and missing ingredients."},
+        "outcome": {"eyebrow":"COOK WITH CLARITY","lead":"Follow the recipe.","accent":"Save the result.","close":"Teach Pantry your taste.","supportingLead":"Your feedback improves","supportingAccent":"future rankings."},
+        "premium-bridge": {"eyebrow":"PANTRY PREMIUM","lead":"More analyses.","accent":"More photos.","close":"A longer kitchen memory.","supportingLead":"Try Premium free","supportingAccent":"for seven days."}
+      }
+    },
+    "tr-TR": {
+      "name": "Pantry Lens: AI Tarifler",
+      "direction": "ltr",
+      "status": "human_reviewed",
+      "scenes": {
+        "problem": {"eyebrow":"AKŞAM YEMEĞİ HAZIR","lead":"İyi bir yemeğin","accent":"başlangıcı","close":"zaten evinde.","supportingLead":"Önce elindekileri","supportingAccent":"değerlendir."},
+        "promise": {"eyebrow":"TEK FOTOĞRAF","lead":"Malzemelerini tara.","accent":"Kontrol sende.","close":"Güvenle karar ver.","supportingLead":"Fotoğrafla başla,","supportingAccent":"kolayca düzelt."},
+        "feature-one": {"eyebrow":"SEN ONAYLARSIN","lead":"Adı düzelt.","accent":"Miktarı boş bırak.","close":"Eksik ürünü ekle.","supportingLead":"Sen onaylamadan","supportingAccent":"hiçbir ürün kullanılmaz."},
+        "feature-two": {"eyebrow":"DAHA AZ ARAMA","lead":"En uygun olanı gör.","accent":"Nedenini bil.","close":"Pişirmeye başla.","supportingLead":"Süreyi, emeği ve","supportingAccent":"eksikleri karşılaştır."},
+        "outcome": {"eyebrow":"NET ADIMLARLA PİŞİR","lead":"Tarifi takip et.","accent":"Sonucu kaydet.","close":"Pantry damak tadını öğrensin.","supportingLead":"Geri bildirimin sonraki","supportingAccent":"sıralamaları iyileştirir."},
+        "premium-bridge": {"eyebrow":"PANTRY PREMIUM","lead":"Daha fazla analiz.","accent":"Daha fazla fotoğraf.","close":"Daha uzun mutfak hafızası.","supportingLead":"Premium'u yedi gün","supportingAccent":"ücretsiz dene."}
+      }
+    }
+  }
+}
